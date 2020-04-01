@@ -26,14 +26,21 @@ public:
 	void setSingleGateTime(double val){ singleGateTime = val; }
 	void setMultiGateTime(double val){ multiGateTime = val; }
 
+	int getXSize(){ return xSize; }
+	int getYSize(){ return ySize; }
+
 	void init();
 	void generateBell(cords first, cords sec);
 	void cz(cords control, cords target);
 	void swap(cords first, cords sec);
 	int move(cords init, cords dest);
 	void hadamardGate(cords target);
+	void sqrtX(cords target);
+	void sqrtY(cords target);
+	void TGate(cords target);
 	double calcBellFidelity(cords first, cords sec);
 	double calcBellFidelityDirect(cords first, cords sec);
+	int meas(cords target){ return measure(qubits, getIndex(target)); }
 
 	Qureg &reg(){ return qubits; }
 

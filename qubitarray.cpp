@@ -1,5 +1,7 @@
 #include "qubitarray.h"
 #include <stdexcept>
+
+#define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
 
@@ -143,6 +145,49 @@ void QubitArray::hadamardGate(cords target)
 	applyNoise(target);
 	applySingleGateErr(target);
 	hadamard(qubits, getIndex(target));
+	singleGateInCurLayer = true;
+
+	applySingleGateErr(target);
+}
+
+void QubitArray::sqrtX(cords target)
+{
+	if(usedInCurLayer[getIndex(target)])
+		startNewLayer();
+	usedInCurLayer[getIndex(target)] = true;
+
+	applyNoise(target);
+	applySingleGateErr(target);
+	rotateX(qubits, getIndex(target), M_PI_2);
+	singleGateInCurLayer = true;
+
+	applySingleGateErr(target);
+}
+
+
+void QubitArray::sqrtY(cords target)
+{
+	if(usedInCurLayer[getIndex(target)])
+		startNewLayer();
+	usedInCurLayer[getIndex(target)] = true;
+
+	applyNoise(target);
+	applySingleGateErr(target);
+	rotateY(qubits, getIndex(target), M_PI_2);
+	singleGateInCurLayer = true;
+
+	applySingleGateErr(target);
+}
+
+void QubitArray::TGate(cords target)
+{
+	if(usedInCurLayer[getIndex(target)])
+		startNewLayer();
+	usedInCurLayer[getIndex(target)] = true;
+
+	applyNoise(target);
+	applySingleGateErr(target);
+	tGate(qubits, getIndex(target));
 	singleGateInCurLayer = true;
 
 	applySingleGateErr(target);

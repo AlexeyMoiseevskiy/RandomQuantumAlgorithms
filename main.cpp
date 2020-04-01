@@ -1,93 +1,173 @@
 #include <iostream>
 #include <QuEST.h>
 #include "qubitarray.h"
-#include <unistd.h>
-#include <vector>
 #include <cmath>
 #include <string>
-#include <libconfig.h++>
+
+#include <stdlib.h>
+#include <time.h>
+#include <stdio.h>
+
+#define LINES 3
+#define COLS 4
+#define GATESNUM 3
+#define DEPTH 7
+#define STATISTICS 10000
 
 using namespace std;
-using namespace libconfig;
 
-void startSimulation(int maxQubits, int avg,
-					 double singleErrRate, double multiErrRate, double envCoupling,
-					 double singleCoupling, double multiCoupling)
+enum gates
 {
-	QuESTEnv env = createQuESTEnv();
-	QubitArray qubits(env, 1, 3);
-	qubits.setEnvCoupling(envCoupling);
-	qubits.setSingleErrRate(singleErrRate);
-	qubits.setMultiErrRate(multiErrRate);
-	qubits.setSingleGateCoupling(singleCoupling);
-	qubits.setMultiGateCoupling(multiCoupling);
+	TGate,
+	sqrtX,
+	sqrtY,
+};
 
-	cout << "Path \t fidelity \t fidelity std error\n";
-	for(int path = 1; path <= maxQubits - 2; path++)
+gates lastGate[COLS][LINES];
+bool CZLast[COLS][LINES];
+bool usedBefore[COLS][LINES];
+
+void applyRandomGate(QubitArray &qubits, int x, int y)
+{
+	if(usedBefore[x][y])
 	{
-		cerr << "Path " << path << "\n";
-		qubits.setSize(1, path + 2);
-		double avgFidelity = 0;
-		vector <double> fidelity;
-		for(int i = 0; i < avg; i++)
-		{
-			qubits.init();
-			qubits.generateBell({0, 0}, {0, 1});
-			qubits.move({0, 1}, {0, 1 + path});
-			double curFidelity = qubits.calcBellFidelity({0, 0}, {0, 1 + path});
-			avgFidelity += curFidelity;
-			fidelity.push_back(curFidelity);
-		}
-
-		avgFidelity /= avg;
-		double squaredErrSum = 0, standDiv = 0;
-		if(avg > 1)
-		{
-			for(auto f: fidelity)
-				squaredErrSum += (avgFidelity - f) * (avgFidelity - f);
-			standDiv = sqrt( squaredErrSum / ((avg - 1) * avg) );
-		}
-
-		cout << path << " \t " << avgFidelity << " \t " << standDiv << "\n";
+		qubits.TGate({x, y});
+		usedBefore[x][y] = true;
+		return;
 	}
+	if(!CZLast[x][y])
+		return;
+
+	int r;
+	for (r = rand() % GATESNUM; r == lastGate[x][y]; r = rand() % GATESNUM);
+
+	switch(r)
+	{
+	case gates::TGate :
+		qubits.TGate({x, y});
+		break;
+	case gates::sqrtX :
+		qubits.sqrtX({x, y});
+		break;
+	case gates::sqrtY :
+		qubits.sqrtY({x, y});
+		break;
+	default :
+		cout << "applyRandomGate : Unexpected error with random generator\n";
+	}
+	lastGate[x][y] = static_cast<gates>(r);
+	CZLast[x][y] = false;
+}
+
+void fillLine(QubitArray &qubits, int line, int begin, int end, int gap)
+{
+	for(int i = 0; i < begin; i++)
+		applyRandomGate(qubits, i, line);
+	for(int i = begin; i + 1< end; i += gap + 1)
+	{
+		qubits.cz({i, line}, {i + 1, line});
+		CZLast[i][line] = true;
+		CZLast[i + 1][line] = true;
+		for(int j = 0; j < gap && i + 2 + j < end; j++)
+			applyRandomGate(qubits, i + 2 + j, line);
+	}
+	for(int i = end; i < qubits.getXSize(); i++)
+		applyRandomGate(qubits, i, line);
+}
+
+
+void fillCol(QubitArray &qubits, int col, int begin, int end, int gap)
+{
+	for(int i = 0; i < begin; i++)
+		applyRandomGate(qubits, col, i);
+	for(int i = begin; i + 1< end; i += gap + 1)
+	{
+		qubits.cz({col, i}, {col, i + 1});
+		CZLast[col][i] = true;
+		CZLast[col][i + 1] = true;
+		for(int j = 0; j < gap && i + 2 + j < end; j++)
+			applyRandomGate(qubits, col, i + 2 + j);
+	}
+	for(int i = end; i < qubits.getYSize(); i++)
+		applyRandomGate(qubits, col, i);
+}
+
+void applyLayersBlock(QubitArray &qubits)
+{
+	const int gap = 2;
+	const int lines = qubits.getYSize(), cols = qubits.getXSize();
+	//#1
+	for(int i = 0; i < lines; i += 2)
+		fillLine(qubits, i, 2, cols, gap);
+	for(int i = 1; i < lines; i += 2)
+		fillLine(qubits, i, 0, cols, gap);
+	//#2
+	for(int i = 0; i < lines; i += 2)
+		fillLine(qubits, i, 0, cols, gap);
+	for(int i = 1; i < lines; i += 2)
+		fillLine(qubits, i, 2, cols, gap);
+	//#3
+	for(int i = 0; i < cols; i += 2)
+		fillCol(qubits, i, 3, lines - 1, gap);
+	for(int i = 1; i < cols; i += 2)
+		fillCol(qubits, i, 1, lines - 1, gap);
+	//#4
+	for(int i = 0; i < cols; i += 2)
+		fillCol(qubits, i, 1, lines - 1, gap);
+	for(int i = 1; i < cols; i += 2)
+		fillCol(qubits, i, 3, lines - 1, gap);
+	//#5
+	for(int i = 0; i < lines; i += 2)
+		fillCol(qubits, i, 3, cols - 1, gap);
+	for(int i = 1; i < lines; i += 2)
+		fillCol(qubits, i, 1, cols - 1, gap);
+	//#6
+	for(int i = 0; i < lines; i += 2)
+		fillCol(qubits, i, 1, cols - 1, gap);
+	for(int i = 1; i < lines; i += 2)
+		fillCol(qubits, i, 3, cols - 1, gap);
+	//#7
+	for(int i = 0; i < cols; i += 2)
+		fillCol(qubits, i, 0, lines, gap);
+	for(int i = 1; i < cols; i += 2)
+		fillCol(qubits, i, 2, lines, gap);
+	//#8
+	for(int i = 0; i < cols; i += 2)
+		fillCol(qubits, i, 2, lines, gap);
+	for(int i = 1; i < cols; i += 2)
+		fillCol(qubits, i, 0, lines, gap);
 }
 
 int main()
 {
-	Config cfg;
-	int qubits = 10, avg = 1000;
-	double singleErrRate = 0.01, multiErrRate = 0.1, envCoupling = 0.2, singleCoupling = 0.2, multiCoupling = 0.2;
-	try
+
+	freopen("3by4depth7statistics10k.txt", "w", stdout);
+	srand( (unsigned)time(NULL) );
+	QuESTEnv env = createQuESTEnv();
+	QubitArray qubits(env, COLS, LINES);
+
+	//H layer
+	for(int i = 0; i < COLS; i++)
+		for(int j = 0; j < LINES; j++)
+			qubits.hadamardGate({i, j});
+
+	qubits.setSingleErrRate(0);
+	qubits.setMultiErrRate(0);
+
+	for(int j = 0; j < STATISTICS; j++)
 	{
-		cfg.readFile("simulatorConfig.cfg");
-		cfg.lookupValue("regSize", qubits);
-		cfg.lookupValue("averaging", avg);
-		cfg.lookupValue("singleErrRate", singleErrRate);
-		cfg.lookupValue("multiErrRate", multiErrRate);
-		cfg.lookupValue("envCoupling", envCoupling);
-		cfg.lookupValue("singleCoupling", singleCoupling);
-		cfg.lookupValue("multiCoupling", multiCoupling);
+		cerr << "Step " << j << " of "<< STATISTICS << "\n";
+		for(int i = 0; i < DEPTH; i++)
+			applyLayersBlock(qubits);
+		//int outcome[COLS][LINES];
 
-		cerr << "Parameters found: "<< qubits << " " << avg << " " << singleErrRate << " " << multiErrRate
-			 << " " << envCoupling << " " << singleCoupling << " " << multiCoupling << "\n";
+		cout << "{ ";
+		for(int i = 0; i < COLS; i++)
+		{
+			for(int j = 0; j < LINES; j++)
+				cout << qubits.meas({i, j}) << ", ";
+		}
+		cout << "},\n";
 	}
-	catch(const FileIOException &fioex)
-	{
-		cerr << "I/O error while reading file." << std::endl;
-	}
-	catch(const ParseException &pex)
-	{
-		cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
-				 << " - " << pex.getError() << std::endl;
-	}
-
-	string filename = "Simulation" + to_string(qubits) +  "Qubits"
-			+ "ErrRateSingle" + to_string(singleErrRate) + "Multi" + to_string(multiErrRate)
-			+ "Averaging" + to_string(avg) + ".txt";
-
-	freopen(filename.c_str(), "w", stdout);
-	startSimulation(qubits, avg, singleErrRate, multiErrRate, envCoupling, singleCoupling, multiCoupling);
-
-
 	return 0;
 }

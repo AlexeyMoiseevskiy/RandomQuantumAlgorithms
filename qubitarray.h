@@ -41,6 +41,7 @@ public:
 	double calcBellFidelity(cords first, cords sec);
 	double calcBellFidelityDirect(cords first, cords sec);
 	int meas(cords target){ return measure(qubits, getIndex(target)); }
+	double getSquaredAmp(int index);
 
 	Qureg &reg(){ return qubits; }
 

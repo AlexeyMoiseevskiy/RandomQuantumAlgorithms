@@ -28,6 +28,12 @@ void QubitArray::setSize(int a, int b)
 	init();
 }
 
+double QubitArray::getSquaredAmp(int index)
+{
+	double real = getAmp(qubits, index).real, imag = getAmp(qubits, index).imag;
+	return real * real + imag * imag;
+}
+
 int QubitArray::getIndex(cords c)
 {
 	if (c.x > xSize || c.y > ySize || c.y < 0 || c.x < 0)

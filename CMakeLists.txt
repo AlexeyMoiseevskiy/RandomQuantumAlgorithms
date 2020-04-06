@@ -11,6 +11,6 @@ set_target_properties(QuEST PROPERTIES
 	INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/../QuEST/include"
 )
 
-set(SIMULATOR_SRC "main.cpp" "qubitarray.cpp")
+set(SIMULATOR_SRC "main.cpp" "qubitarray.cpp" "randqalg.cpp")
 add_executable(QubitArraySimulator ${SIMULATOR_SRC})
-target_link_libraries(QubitArraySimulator QuEST config++)
+target_link_libraries(QubitArraySimulator QuEST)

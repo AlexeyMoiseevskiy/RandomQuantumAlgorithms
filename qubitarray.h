@@ -45,6 +45,9 @@ public:
 
 	Qureg &reg(){ return qubits; }
 
+protected:
+	int getIndex(cords c);
+
 private:
 	QuESTEnv env;
 	Qureg qubits;
@@ -59,7 +62,6 @@ private:
 	double singleGateTime;
 	double multiGateTime;
 
-	int getIndex(cords c);
 	void updateTotalTime();
 	std::random_device rd{};
 	std::mt19937 gen{rd()};

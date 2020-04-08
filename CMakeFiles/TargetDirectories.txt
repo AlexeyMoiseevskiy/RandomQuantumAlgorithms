@@ -1,3 +1,0 @@
-/mnt/c/Users/Alex/Projects/QubitArraySimulator/CMakeFiles/rebuild_cache.dir
-/mnt/c/Users/Alex/Projects/QubitArraySimulator/CMakeFiles/QubitArraySimulator.dir
-/mnt/c/Users/Alex/Projects/QubitArraySimulator/CMakeFiles/edit_cache.dir

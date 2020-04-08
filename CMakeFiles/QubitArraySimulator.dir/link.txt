@@ -1,1 +1,0 @@
-/usr/bin/c++     CMakeFiles/QubitArraySimulator.dir/main.cpp.o CMakeFiles/QubitArraySimulator.dir/qubitarray.cpp.o  -o QubitArraySimulator -Wl,-rpath,/mnt/c/Users/Alex/Projects/QubitArraySimulator/../QuEST ../QuEST/libQuEST.so -lconfig++ 

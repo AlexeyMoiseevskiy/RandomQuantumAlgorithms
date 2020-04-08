@@ -10,9 +10,9 @@
 
 #define LINES 3
 #define COLS 4
-#define DEPTH 56
-#define STATISTICS 100
-#define NOISEAVG 100
+#define DEPTH 40
+#define STATISTICS 50
+#define AVG 100
 
 using namespace std;
 
@@ -23,8 +23,10 @@ int main()
 	srand( (unsigned)time(NULL) );
 	QuESTEnv env = createQuESTEnv();
 	RandQAlg alg(env, COLS, LINES, DEPTH);
-	alg.setSingleErrRate(0);
-	alg.setMultiErrRate(0);
+
+	alg.setSingleErrRate(0.0005);
+	alg.setMultiErrRate(0.005);
+	alg.setEnvCoupling(0);
 
 	static constexpr int ampNum = (1 << (COLS * LINES));
 	double amps[ampNum];
@@ -35,10 +37,18 @@ int main()
 		cerr << "Step " << j + 1 << " of "<< STATISTICS << "\n";
 
 		alg.generate();
-		alg.evaluate();
+
+		for(int i = 0; i < ampNum; i++)
+			amps[i] = 0;
+		for(int k = 0; k < AVG; k++)
+		{
+			alg.evaluate();
+			for(int i = 0; i < ampNum; i++)
+				amps[i] += alg.getSquaredAmp(i);
+		}
 		for(int i = 0; i < ampNum; i++)
 		{
-			cout << alg.getSquaredAmp(i);
+			cout << amps[i] / AVG;
 			if(i + 1 < ampNum)
 				cout << ", ";
 		}

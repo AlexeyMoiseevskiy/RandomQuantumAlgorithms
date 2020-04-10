@@ -4,6 +4,7 @@
 #include <QuEST.h>
 #include "qubitarray.h"
 #include <array>
+#include <vector>
 
 enum class gateName
 {
@@ -42,6 +43,7 @@ public:
 
 private:
 	int givenDepth;
+	int currentDepth;
 	std::vector<std::vector<Gate>> layers;
 
 	void applyGate(Gate gate, cords qubit);
@@ -50,19 +52,11 @@ private:
 	Gate lastSingleGateApplyed(cords qubit);
 
 	static constexpr int gapBeetwCZ = 2;
-	static constexpr int lineSaplesInMask = 2;
+	static constexpr int lineSamplesInMask = 2;
 
 	void fillLine(int lineNum, int begin);
 	void fillCol(int colNum, int begin);
-	void addLayer(const int beginPoints[], int numOfLines, void (RandQAlg::*fillerFunc)(int, int));
-
-	/*struct Mask
-	{
-		int beginPoints[lineSaplesInMask];
-		int endPoint;
-		void (RandQAlg::*fillerFunc)(int, int);
-	};
-	static constexpr std::array<Mask, 1> masks{{0, 2}, 2, &(RandQAlg::fillLine)};*/
+	void addLayer(const std::array<int, lineSamplesInMask> &beginPoints, int numOfLines, void (RandQAlg::*fillerFunc)(int, int));
 };
 
 #endif // RANDQALG_H

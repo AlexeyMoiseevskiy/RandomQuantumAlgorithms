@@ -6,8 +6,10 @@
 RandQAlg::RandQAlg(QuESTEnv externEnv, int a, int b, int depth)
 	: QubitArray(externEnv, a, b)
 {
-	givenDepth = depth + 1;			// + 1 init layer
-	layers.reserve(givenDepth);
+	givenDepth = depth;
+	layers.resize(givenDepth);
+	for(auto &layer: layers)
+		layer.resize(a * b, gateWait);
 }
 
 RandQAlg::~RandQAlg()
@@ -40,22 +42,20 @@ void RandQAlg::applyGate(Gate gate, cords qubit)
 
 void RandQAlg::addGate(Gate gate, cords qubit)
 {
-	if(layers.back()[getIndex(qubit)].name != gateName::wait)
-		throw std::runtime_error("incorrect program generated");
-	layers.back()[getIndex(qubit)] = gate;
+	layers[currentDepth][getIndex(qubit)] = gate;
 }
 
 Gate RandQAlg::lastSingleGateApplyed(cords qubit)
 {
 	int index = getIndex(qubit);
-	for(int i = layers.size() - 1; i >= 0; i--)
+	for(int i = currentDepth - 1; i >= 0; i--)
 	{
 		auto wantedName = layers[i][index].name;
 		auto iterator = std::find_if(singleGates.begin(), singleGates.end(),
-				[wantedName](Gate a)
-				{
-					return(a.name ==  wantedName);
-				}
+			[wantedName](Gate a)
+			{
+				return(a.name ==  wantedName);
+			}
 		);
 		if(iterator != singleGates.end())
 			return *iterator;
@@ -66,7 +66,7 @@ Gate RandQAlg::lastSingleGateApplyed(cords qubit)
 Gate RandQAlg::lastGateApplyed(cords qubit)
 {
 	int index = getIndex(qubit);
-	for(int i = layers.size() - 1; i >= 0; i--)
+	for(int i = currentDepth - 1; i >= 0; i--)
 		if(layers[i][index].name != gateName::wait)
 			return layers[i][index].name;
 	return gateInit;
@@ -126,37 +126,31 @@ void RandQAlg::fillCol(int colNum, int begin)
 		addGate(genSingleGate({colNum, count}), {colNum, count});
 }
 
-void RandQAlg::addLayer(const int beginPoints[lineSaplesInMask], int numOfLines, void (RandQAlg::*fillerFunc)(int, int))
+void RandQAlg::addLayer(const std::array<int, lineSamplesInMask> &beginPoints, int numOfLines, void (RandQAlg::*fillerFunc)(int, int))
 {
-	if(static_cast<int>(layers.size()) >= givenDepth)
+	if(currentDepth >= givenDepth)
 		return;
 
-	layers.push_back(std::vector<Gate>(getXSize() * getYSize(), gateWait));
-	for(int lineSample = 0; lineSample < lineSaplesInMask; lineSample++)
-		for(int line = lineSample; line < numOfLines; line += lineSaplesInMask)
+	for(int lineSample = 0; lineSample < lineSamplesInMask; lineSample++)
+		for(int line = lineSample; line < numOfLines; line += lineSamplesInMask)
 			(this->*fillerFunc)(line, beginPoints[lineSample]);
-}
-
-void RandQAlg::init()
-{
-	layers.clear();
-	layers.push_back(std::vector<Gate>(getXSize() * getYSize(), gateInit));
+	currentDepth++;
 }
 
 void RandQAlg::generate()
 {
-	init();
+	currentDepth = 0;
 	int lines = getYSize(), cols = getXSize();
-	while(static_cast<int>(layers.size()) < givenDepth)
+	while(currentDepth < givenDepth)
 	{
-		addLayer((const int[lineSaplesInMask]){2, 0}, lines, &RandQAlg::fillLine);
-		addLayer((const int[lineSaplesInMask]){0, 2}, lines, &RandQAlg::fillLine);
-		addLayer((const int[lineSaplesInMask]){3, 1}, cols, &RandQAlg::fillCol);
-		addLayer((const int[lineSaplesInMask]){1, 3}, cols, &RandQAlg::fillCol);
-		addLayer((const int[lineSaplesInMask]){3, 1}, lines, &RandQAlg::fillLine);
-		addLayer((const int[lineSaplesInMask]){1, 3}, lines, &RandQAlg::fillLine);
-		addLayer((const int[lineSaplesInMask]){0, 2}, cols, &RandQAlg::fillCol);
-		addLayer((const int[lineSaplesInMask]){2, 0}, cols, &RandQAlg::fillCol);
+		addLayer({2, 0}, lines, &RandQAlg::fillLine);
+		addLayer({0, 2}, lines, &RandQAlg::fillLine);
+		addLayer({3, 1}, cols, &RandQAlg::fillCol);
+		addLayer({1, 3}, cols, &RandQAlg::fillCol);
+		addLayer({3, 1}, lines, &RandQAlg::fillLine);
+		addLayer({1, 3}, lines, &RandQAlg::fillLine);
+		addLayer({0, 2}, cols, &RandQAlg::fillCol);
+		addLayer({2, 0}, cols, &RandQAlg::fillCol);
 	}
 }
 

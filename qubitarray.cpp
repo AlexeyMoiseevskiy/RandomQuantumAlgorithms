@@ -1,13 +1,12 @@
 #include "qubitarray.h"
 #include <stdexcept>
+#include <cmath>
 
 #define _USE_MATH_DEFINES
-#include <cmath>
-#include <iostream>
 
-QubitArray::QubitArray(QuESTEnv externEnv, int a, int b)
+QubitArray::QubitArray(int a, int b)
 {
-	env = externEnv;
+	env = createQuESTEnv();
 	setSize(a, b);
 
 	envCoupling = 0.2;
@@ -34,13 +33,6 @@ double QubitArray::getSquaredAmp(int index)
 	return real * real + imag * imag;
 }
 
-int QubitArray::getIndex(cords c)
-{
-	if (c.x > xSize || c.y > ySize || c.y < 0 || c.x < 0)
-		throw std::out_of_range("Given index is out of qubit register ranges");
-	return c.y * xSize + c.x;
-}
-
 void QubitArray::updateTotalTime()
 {
 	if(singleGateInCurLayer && !multiGateInCurLayer)
@@ -64,7 +56,6 @@ void QubitArray::init()
 void QubitArray::startNewLayer()
 {
 	updateTotalTime();
-	//std::cerr << "New Layer, time is " << totalTime << "\n";
 	singleGateInCurLayer = false;
 	multiGateInCurLayer = false;
 	std::fill(usedInCurLayer.begin(), usedInCurLayer.end(), false);
@@ -77,7 +68,6 @@ void QubitArray::generateBell(cords first, cords sec)
 	multiGateInCurLayer = true;
 	usedInCurLayer[getIndex(first)] = usedInCurLayer[getIndex(sec)] = true;
 	lastNoiseTime[getIndex(first)] = lastNoiseTime[getIndex(sec)] = totalTime + multiGateTime;
-	//std::cerr << "Generated bell, time is " << totalTime << "\n";
 }
 
 void QubitArray::cz(cords control, cords target)
@@ -101,8 +91,6 @@ void QubitArray::cz(cords control, cords target)
 
 void QubitArray::swap(cords first, cords sec)
 {
-	//std::cerr << "Moving " << getIndex(first) << " to " << getIndex(sec)
-	//			 << " time is " << totalTime << "\n";
 	if(usedInCurLayer[getIndex(first)] || usedInCurLayer[getIndex(sec)])
 		startNewLayer();
 	usedInCurLayer[getIndex(first)] = usedInCurLayer[getIndex(sec)] = true;
@@ -142,7 +130,7 @@ int QubitArray::move(cords init, cords dest)
 	return abs(init.x - dest.x) + abs(init.y - dest.y);
 }
 
-void QubitArray::hadamardGate(cords target)
+void QubitArray::applySingleGate(cords target, void (*gate)(Qureg, int))
 {
 	if(usedInCurLayer[getIndex(target)])
 		startNewLayer();
@@ -150,50 +138,7 @@ void QubitArray::hadamardGate(cords target)
 
 	applyNoise(target);
 	applySingleGateErr(target);
-	hadamard(qubits, getIndex(target));
-	singleGateInCurLayer = true;
-
-	applySingleGateErr(target);
-}
-
-void QubitArray::sqrtX(cords target)
-{
-	if(usedInCurLayer[getIndex(target)])
-		startNewLayer();
-	usedInCurLayer[getIndex(target)] = true;
-
-	applyNoise(target);
-	applySingleGateErr(target);
-	rotateX(qubits, getIndex(target), M_PI_2);
-	singleGateInCurLayer = true;
-
-	applySingleGateErr(target);
-}
-
-
-void QubitArray::sqrtY(cords target)
-{
-	if(usedInCurLayer[getIndex(target)])
-		startNewLayer();
-	usedInCurLayer[getIndex(target)] = true;
-
-	applyNoise(target);
-	applySingleGateErr(target);
-	rotateY(qubits, getIndex(target), M_PI_2);
-	singleGateInCurLayer = true;
-
-	applySingleGateErr(target);
-}
-
-void QubitArray::TGate(cords target)
-{
-	if(usedInCurLayer[getIndex(target)])
-		startNewLayer();
-	usedInCurLayer[getIndex(target)] = true;
-
-	applyNoise(target);
-	applySingleGateErr(target);
-	tGate(qubits, getIndex(target));
+	gate(qubits, getIndex(target));
 	singleGateInCurLayer = true;
 
 	applySingleGateErr(target);
@@ -202,7 +147,6 @@ void QubitArray::TGate(cords target)
 double QubitArray::calcBellFidelity(cords first, cords sec)
 {
 	updateTotalTime();
-	//std::cerr << "Calcing fidelity, time is " << totalTime << "\n";
 	applyNoise();
 	controlledNot(qubits, getIndex(first), getIndex(sec));
 	hadamard(qubits, getIndex(first));
@@ -214,7 +158,6 @@ double QubitArray::calcBellFidelity(cords first, cords sec)
 
 double QubitArray::calcBellFidelityDirect(cords first, cords sec)
 {
-	//std::cerr << "Calcing fidelity\n";
 	updateTotalTime();
 	applyNoise();
 
@@ -239,7 +182,6 @@ void QubitArray::applyNoiseGate(int index, double coupling, double time)
 
 void QubitArray::applyNoise(int index)
 {
-	//std::cerr << "Noise to qubit " << index << " time is " << totalTime - lastNoiseTime[index] << '\n';
 	applyNoiseGate(index, envCoupling, totalTime - lastNoiseTime[index]);
 	lastNoiseTime[index] = totalTime;
 }
@@ -252,7 +194,6 @@ void QubitArray::applyNoise()
 
 void QubitArray::applySingleGateErr(cords target)
 {
-	//std::cerr << "Single Gate error to qubit " << getIndex(target) << '\n';
 	double effectiveTime = -(log(1 - 2 * singleErrRate) / (2 * singleGateCoupling));
 	applyNoiseGate(getIndex(target), singleGateCoupling, effectiveTime);
 	lastNoiseTime[getIndex(target)] = totalTime + singleGateTime;
@@ -261,7 +202,6 @@ void QubitArray::applySingleGateErr(cords target)
 
 void QubitArray::applyMultiGateErr(cords target)
 {
-	//std::cerr << "Multi Gate error to qubit " << getIndex(target) << '\n';
 	double effectiveTime = -(log(1 - 2 * multiErrRate) / (2 * multiGateCoupling));
 	applyNoiseGate(getIndex(target), multiGateCoupling, effectiveTime);
 	lastNoiseTime[getIndex(target)] = totalTime + multiGateTime;

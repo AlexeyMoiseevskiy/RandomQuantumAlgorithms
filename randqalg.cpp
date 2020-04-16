@@ -3,35 +3,37 @@
 #include <time.h>
 #include <algorithm>
 
-RandQAlg::RandQAlg(QuESTEnv externEnv, int a, int b, int depth)
-	: QubitArray(externEnv, a, b)
+RandQAlg::RandQAlg(int xSize, int ySize, int depth)
 {
+	cols = xSize;
+	lines = ySize;
 	givenDepth = depth;
+	currentDepth = 0;
 	layers.resize(givenDepth);
 	for(auto &layer: layers)
-		layer.resize(a * b, gateWait);
+		layer.resize(xSize * ySize, gateWait);
 }
 
 RandQAlg::~RandQAlg()
 {
 }
 
-void RandQAlg::applyGate(Gate gate, cords qubit)
+void RandQAlg::applyGate(QubitArray &qubits, Gate gate, cords qubit)
 {
 	switch(gate.name)
 	{
 	case gateName::TGate :
-		TGate(qubit);
+		qubits.TGate(qubit);
 		break;
 	case gateName::sqrtX :
-		sqrtX(qubit);
+		qubits.sqrtX(qubit);
 		break;
 	case gateName::sqrtY :
-		sqrtY(qubit);
+		qubits.sqrtY(qubit);
 		break;
 	case gateName::CZ :
 		if(gate.isControl)
-			cz(qubit, gate.companion);
+			qubits.cz(qubit, gate.companion);
 		break;
 	case gateName::wait :
 		break;
@@ -90,39 +92,39 @@ Gate RandQAlg::genSingleGate(cords target)
 
 void RandQAlg::fillLine(int lineNum, int begin)
 {
-	int count, end = getXSize();
+	int count;
 	for(count = 0; count < begin; count++)
 		addGate(genSingleGate({count, lineNum}), {count, lineNum});
 
-	while(count + 1 < end)
+	while(count + 1 < cols)
 	{
 		cords control = {count, lineNum}, target = {count + 1, lineNum};
 		addGate({gateName::CZ, true, target}, control);
 		addGate({gateName::CZ, false, control}, target);
-		for(int i = 0; i < gapBeetwCZ && count + i + 2 < end; i++)
+		for(int i = 0; i < gapBeetwCZ && count + i + 2 < cols; i++)
 			addGate(genSingleGate({count + i + 2, lineNum}), {count + i + 2, lineNum});
 		count += (gapBeetwCZ + 2);
 	}
-	if(count < end)		//we couldn't apply last CZ because we reached the edge of array
+	if(count < cols)		//we couldn't apply last CZ because we reached the edge of array
 		addGate(genSingleGate({count, lineNum}), {count, lineNum});
 }
 
 void RandQAlg::fillCol(int colNum, int begin)
 {
-	int count, end = getYSize();
+	int count;
 	for(count = 0; count < begin; count++)
 		addGate(genSingleGate({colNum, count}), {colNum, count});
 
-	while(count + 1 < end)
+	while(count + 1 < lines)
 	{
 		cords control = {colNum, count}, target = {colNum, count + 1};
 		addGate({gateName::CZ, true, target}, control);
 		addGate({gateName::CZ, false, control}, target);
-		for(int i = 0; i < gapBeetwCZ && count + i + 2 < end; i++)
+		for(int i = 0; i < gapBeetwCZ && count + i + 2 < lines; i++)
 			addGate(genSingleGate({colNum, count + i + 2}), {colNum, count + i + 2});
 		count += (gapBeetwCZ + 2);
 	}
-	if(count < end)		//we couldn't apply last CZ because we reached the edge of array
+	if(count < lines)		//we couldn't apply last CZ because we reached the edge of array
 		addGate(genSingleGate({colNum, count}), {colNum, count});
 }
 
@@ -140,7 +142,6 @@ void RandQAlg::addLayer(const std::array<int, lineSamplesInMask> &beginPoints, i
 void RandQAlg::generate()
 {
 	currentDepth = 0;
-	int lines = getYSize(), cols = getXSize();
 	while(currentDepth < givenDepth)
 	{
 		addLayer({2, 0}, lines, &RandQAlg::fillLine);
@@ -154,19 +155,37 @@ void RandQAlg::generate()
 	}
 }
 
-void RandQAlg::evaluate()
+void RandQAlg::init(QubitArray &qubits)
 {
-	QubitArray::init();
+	qubits.init();
 	//H layer
-	for(int i = 0; i < getXSize(); i++)
-		for(int j = 0; j < getYSize(); j++)
-			hadamardGate({i, j});
-
-	for(auto &layer: layers)
-		for(int i = 0; i < static_cast<int>(layer.size()); i++)
-			applyGate(layer[i], {i % getXSize(), i / getXSize()});
+	for(int i = 0; i < cols; i++)
+		for(int j = 0; j < lines; j++)
+			qubits.hadamardGate({i, j});
 }
 
+void RandQAlg::evaluate(QubitArray &qubits)
+{
+	if(qubits.getXSize() != cols || qubits.getYSize() != lines)
+		throw std::length_error("Algorithm's layer size doesn't match qubit array size");
 
+	init(qubits);
+	for(int j = 0; j < givenDepth; j++)
+		for(int i = 0; i <static_cast<int>(layers[j].size()); i++)
+			applyGate(qubits, layers[j][i], {i % cols, i / cols});
+}
+
+void RandQAlg::evaluateLayer(QubitArray &qubits, int layerIndex)
+{
+	if(qubits.getXSize() != cols || qubits.getYSize() != lines)
+		throw std::length_error("Algorithm's layer size doesn't match qubit array size");
+	if(layerIndex >= givenDepth)
+		throw std::out_of_range("layerNum must be less then algorithm depth");
+
+	if(layerIndex == 0)
+		init(qubits);
+	for(int i = 0; i <static_cast<int>(layers[layerIndex].size()); i++)
+		applyGate(qubits, layers[layerIndex][i], {i % cols, i / cols});
+}
 
 

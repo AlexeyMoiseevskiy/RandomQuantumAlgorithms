@@ -18,38 +18,43 @@ enum class gateName
 
 struct Gate
 {
-	constexpr Gate(gateName str, bool control = false, QubitArray::cords companionCords = {0, 0})
-		: name(str), isControl(control), companion(companionCords){}
+	constexpr Gate(gateName newName, bool control = false, cords companionCords = {0, 0})
+		: name(newName), isControl(control), companion(companionCords){}
 
 	gateName name;
-	bool isControl;						//for multiqubit only
-	QubitArray::cords companion;		//for multiqubit only
+	bool isControl;				//for multiqubit only
+	cords companion;			//for multiqubit only
 };
 
-class RandQAlg : public QubitArray
+class RandQAlg
 {
 public:
-	RandQAlg(QuESTEnv externEnv, int a, int b, int depth);
+	RandQAlg(int xSize, int ySize, int depth);
 	~RandQAlg();
 
+	constexpr int getIndex(cords c){ return c.y * cols + c.x; }
 	static constexpr std::array<Gate, 3> singleGates{Gate(gateName::TGate), Gate(gateName::sqrtX), Gate(gateName::sqrtY)};
 	static constexpr auto gateInit = Gate(gateName::init);
 	static constexpr auto gateWait = Gate(gateName::wait);
 
 	Gate genSingleGate(cords target);
-	void init();
+	std::vector<std::vector<Gate>>& getAlgorithm();
+	void setAlgorithm(std::vector<std::vector<Gate>> &algorithm);
 	void generate();
-	void evaluate();
+	void evaluate(QubitArray &qubits);
+	void evaluateLayer(QubitArray &qubits, int layerIndex);
 
 private:
+	int cols, lines;
 	int givenDepth;
 	int currentDepth;
 	std::vector<std::vector<Gate>> layers;
 
-	void applyGate(Gate gate, cords qubit);
+	void applyGate(QubitArray &qubits, Gate gate, cords qubit);
 	void addGate(Gate gate, cords qubit);
 	Gate lastGateApplyed(cords qubit);
 	Gate lastSingleGateApplyed(cords qubit);
+	void init(QubitArray &qubits);
 
 	static constexpr int gapBeetwCZ = 2;
 	static constexpr int lineSamplesInMask = 2;

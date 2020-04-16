@@ -5,17 +5,17 @@
 #include <random>
 #include <vector>
 
+struct cords
+{
+	int x;
+	int y;
+};
+
 class QubitArray
 {
 public:
-	QubitArray(QuESTEnv externEnv, int a, int b);
+	QubitArray(int a, int b);
 	~QubitArray(){}
-
-	struct cords
-	{
-		int x;
-		int y;
-	};
 
 	void setSize(int a, int b);
 	void setEnvCoupling(int val){ envCoupling = val; }
@@ -34,10 +34,14 @@ public:
 	void cz(cords control, cords target);
 	void swap(cords first, cords sec);
 	int move(cords init, cords dest);
-	void hadamardGate(cords target);
-	void sqrtX(cords target);
-	void sqrtY(cords target);
-	void TGate(cords target);
+
+	void applySingleGate(cords target, void (*gate)(Qureg, int));
+	void hadamardGate(cords target){ applySingleGate(target, &hadamard); }
+	void sqrtX(cords target){ applySingleGate(target, [](Qureg reg, int index){rotateX(reg, index, M_PI_2);}); }
+	void sqrtY(cords target){ applySingleGate(target, [](Qureg reg, int index){rotateY(reg, index, M_PI_2);}); }
+	void TGate(cords target){ applySingleGate(target, tGate); }
+	void XGate(cords target){ applySingleGate(target, pauliX); }
+
 	double calcBellFidelity(cords first, cords sec);
 	double calcBellFidelityDirect(cords first, cords sec);
 	int meas(cords target){ return measure(qubits, getIndex(target)); }
@@ -45,8 +49,8 @@ public:
 
 	Qureg &reg(){ return qubits; }
 
-protected:
-	int getIndex(cords c);
+	constexpr int getIndex(cords c){ return c.y * xSize + c.x; }
+	friend double fidelity(const QubitArray &arr1, const QubitArray &arr2){ return calcFidelity(arr1.qubits, arr2.qubits); }
 
 private:
 	QuESTEnv env;

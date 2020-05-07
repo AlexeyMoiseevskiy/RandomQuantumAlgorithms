@@ -2,8 +2,6 @@
 #include <stdexcept>
 #include <cmath>
 
-#define _USE_MATH_DEFINES
-
 QubitArray::QubitArray(int a, int b)
 {
 	env = createQuESTEnv();
@@ -16,8 +14,11 @@ QubitArray::QubitArray(int a, int b)
 	setSingleErrRate(0.01);
 	setMultiErrRate(0.1);
 
-	singleGateTime = 1;
-	multiGateTime = 2;
+	singleGateTime = 0.001;
+	multiGateTime = 0.002;
+
+	loseTime = 0;
+	dynamicNoise = 0;
 }
 
 void QubitArray::setSize(int a, int b)
@@ -46,8 +47,10 @@ void QubitArray::init()
 	qubits = createQureg(xSize * ySize, env);
 	lastNoiseTime.resize(xSize * ySize);
 	usedInCurLayer.resize(xSize * ySize);
+	isLost.resize(xSize * ySize);
 	totalTime = 0;
 	std::fill(lastNoiseTime.begin(), lastNoiseTime.end(), 0);
+	std::fill(isLost.begin(), isLost.end(), false);
 	singleGateInCurLayer = false;
 	multiGateInCurLayer = false;
 	startNewLayer();
@@ -80,17 +83,18 @@ void QubitArray::cz(cords control, cords target)
 	applyNoise(target);
 	applyMultiGateErr(control, target);
 
-	hadamard(qubits, getIndex(target));
-	controlledNot(qubits, getIndex(control), getIndex(target));
-	hadamard(qubits, getIndex(target));
+	controlledPhaseFlip(qubits, getIndex(control), getIndex(target));
+
+	if(isLost[getIndex(target)])
+		collapseToOutcome(qubits, getIndex(target), 0);
 
 	multiGateInCurLayer = true;
-
 	applyMultiGateErr(control, target);
 }
 
 void QubitArray::swap(cords first, cords sec)
 {
+	//doesnt support atom loss
 	if(usedInCurLayer[getIndex(first)] || usedInCurLayer[getIndex(sec)])
 		startNewLayer();
 	usedInCurLayer[getIndex(first)] = usedInCurLayer[getIndex(sec)] = true;
@@ -100,13 +104,14 @@ void QubitArray::swap(cords first, cords sec)
 	applyMultiGateErr(first, sec);
 
 	swapGate(qubits, getIndex(first), getIndex(sec));
-	multiGateInCurLayer = true;
 
+	multiGateInCurLayer = true;
 	applyMultiGateErr(first, sec);
 }
 
 int QubitArray::move(cords init, cords dest)
 {
+	//doesnt support atom loss
 	if(dest.x < 0 || dest.y < 0 || dest.x > xSize || dest.y > ySize || init.x < 0 || init.y < 0 || init.x > xSize || init.y > ySize)
 		throw std::out_of_range("Given index is out of qubit register ranges");
 	cords cur = init;
@@ -130,18 +135,35 @@ int QubitArray::move(cords init, cords dest)
 	return abs(init.x - dest.x) + abs(init.y - dest.y);
 }
 
-void QubitArray::applySingleGate(cords target, void (*gate)(Qureg, int))
+void QubitArray::applySingleGate(cords target, std::function<void(Qureg, int)> gate)
 {
-	if(usedInCurLayer[getIndex(target)])
-		startNewLayer();
-	usedInCurLayer[getIndex(target)] = true;
+	int index = getIndex(target);
 
-	applyNoise(target);
-	applySingleGateErr(target);
-	gate(qubits, getIndex(target));
+	if(usedInCurLayer[index])
+		startNewLayer();
+	usedInCurLayer[index] = true;
 	singleGateInCurLayer = true;
 
+	applyNoise(target);
+	if(isLost[index])
+		return;
 	applySingleGateErr(target);
+	gate(qubits, index);
+
+	applySingleGateErr(target);
+}
+
+void QubitArray::applyRotation(cords target, Vector v, double angle)
+{
+	//provides dynamic noise
+	applySingleGate(target,
+		[angle, v](Qureg reg, int index)
+		{
+			rotateAroundAxis(reg, index, angle, v);
+		});
+	std::normal_distribution<double> rand(0, dynamicNoise);
+	double angleErr = rand(gen);
+	rotateAroundAxis(qubits, getIndex(target), angleErr, v);
 }
 
 double QubitArray::calcBellFidelity(cords first, cords sec)
@@ -182,6 +204,16 @@ void QubitArray::applyNoiseGate(int index, double coupling, double time)
 
 void QubitArray::applyNoise(int index)
 {
+	if(isLost[index])
+		return;
+	std::uniform_real_distribution rand(0.0, 1.0);
+	if(loseTime > 0)
+		if(rand(gen) > std::exp((-1) * totalTime/loseTime))
+		{
+			isLost[index] = true;
+			collapseToOutcome(qubits, index, 0);
+			return;
+		}
 	applyNoiseGate(index, envCoupling, totalTime - lastNoiseTime[index]);
 	lastNoiseTime[index] = totalTime;
 }
@@ -202,6 +234,8 @@ void QubitArray::applySingleGateErr(cords target)
 
 void QubitArray::applyMultiGateErr(cords target)
 {
+	if(isLost[getIndex(target)])
+		return;
 	double effectiveTime = -(log(1 - 2 * multiErrRate) / (2 * multiGateCoupling));
 	applyNoiseGate(getIndex(target), multiGateCoupling, effectiveTime);
 	lastNoiseTime[getIndex(target)] = totalTime + multiGateTime;

@@ -3,6 +3,8 @@
 #include <time.h>
 #include <algorithm>
 
+#define _USE_MATH_DEFINES
+
 RandQAlg::RandQAlg(int xSize, int ySize, int depth)
 {
 	cols = xSize;
@@ -23,13 +25,13 @@ void RandQAlg::applyGate(QubitArray &qubits, Gate gate, cords qubit)
 	switch(gate.name)
 	{
 	case gateName::TGate :
-		qubits.TGate(qubit);
+		qubits.applyRotation(qubit, {0, 0, 1}, M_PI_4);	//qubits.TGate(qubit); or PI/4 around Z-axis
 		break;
 	case gateName::sqrtX :
-		qubits.sqrtX(qubit);
+		qubits.applyRotation(qubit, {1, 0, 0}, M_PI_2); //qubits.sqrtX(qubit); or PI/2 around X-axis
 		break;
 	case gateName::sqrtY :
-		qubits.sqrtY(qubit);
+		qubits.applyRotation(qubit, {0, 1, 0}, M_PI_2); //qubits.sqrtY(qubit); or PI/2 around Y-axis
 		break;
 	case gateName::CZ :
 		if(gate.isControl)

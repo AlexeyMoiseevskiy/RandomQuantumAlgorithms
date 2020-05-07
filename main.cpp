@@ -10,24 +10,22 @@
 #define LINES 3
 #define COLS 4
 #define DEPTH 40
-#define AVG 100
+#define AVG 25
 #define ALGS 50
-
-#define ERRDEPTH 24
-#define ERRCORDS {3, 3}
 
 using namespace std;
 
 int main()
 {
-	freopen("LoseTime3.txt", "w", stdout);
+	freopen("DyNoise0.5.txt", "w", stdout);
 	srand( (unsigned)time(NULL) );
 
 	QubitArray qubits(COLS, LINES);
 	qubits.setSingleErrRate(0.000);
 	qubits.setMultiErrRate(0.00);
 	qubits.setEnvCoupling(0);
-	qubits.setLostProb(3);
+	//qubits.setLostProb(3);
+	qubits.setDynamicNoise(0.5);
 	RandQAlg alg(COLS, LINES, DEPTH);
 	alg.generate();
 

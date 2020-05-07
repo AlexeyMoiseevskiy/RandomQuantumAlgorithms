@@ -4,6 +4,9 @@
 #include <QuEST.h>
 #include <random>
 #include <vector>
+#include <functional>
+
+#define _USE_MATH_DEFINES
 
 struct cords
 {
@@ -25,6 +28,8 @@ public:
 	void setMultiErrRate(double val){ multiErrRate = val / 2; }
 	void setSingleGateTime(double val){ singleGateTime = val; }
 	void setMultiGateTime(double val){ multiGateTime = val; }
+	void setLoseTime(double val){ loseTime = val; }
+	void setDynamicNoise(double val){ dynamicNoise = val; }
 
 	int getXSize(){ return xSize; }
 	int getYSize(){ return ySize; }
@@ -35,7 +40,8 @@ public:
 	void swap(cords first, cords sec);
 	int move(cords init, cords dest);
 
-	void applySingleGate(cords target, void (*gate)(Qureg, int));
+	void applySingleGate(cords target, std::function<void(Qureg, int)> gate);
+	void applyRotation(cords target, Vector v, double angle);
 	void hadamardGate(cords target){ applySingleGate(target, &hadamard); }
 	void sqrtX(cords target){ applySingleGate(target, [](Qureg reg, int index){rotateX(reg, index, M_PI_2);}); }
 	void sqrtY(cords target){ applySingleGate(target, [](Qureg reg, int index){rotateY(reg, index, M_PI_2);}); }
@@ -46,11 +52,10 @@ public:
 	double calcBellFidelityDirect(cords first, cords sec);
 	int meas(cords target){ return measure(qubits, getIndex(target)); }
 	double getSquaredAmp(int index);
-
-	Qureg &reg(){ return qubits; }
+	friend double fidelity(const QubitArray &arr1, const QubitArray &arr2){ return calcFidelity(arr1.qubits, arr2.qubits); }
+	double calcProb(cords target){ return calcProbOfOutcome(qubits, getIndex(target), 1); }
 
 	constexpr int getIndex(cords c){ return c.y * xSize + c.x; }
-	friend double fidelity(const QubitArray &arr1, const QubitArray &arr2){ return calcFidelity(arr1.qubits, arr2.qubits); }
 
 private:
 	QuESTEnv env;
@@ -65,6 +70,8 @@ private:
 	double multiErrRate;
 	double singleGateTime;
 	double multiGateTime;
+	double loseTime;
+	double dynamicNoise;
 
 	void updateTotalTime();
 	std::random_device rd{};
@@ -83,6 +90,7 @@ private:
 	bool multiGateInCurLayer;
 	std::vector <int> lastNoiseTime;
 	std::vector <bool> usedInCurLayer;
+	std::vector <bool> isLost;
 	void startNewLayer();
 };
 

@@ -5,21 +5,21 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
-#include <vector>
+#include <cmath>
 
-#define LINES 3
+#define LINES 4
 #define COLS 4
-#define DEPTH 40
+#define DEPTH 100
 #define AVG 1
 
-#define ERRDEPTH 2
-#define ERRCORDS {0, 0}
+#define ERRDEPTH 24
+#define ERRCORDS {3, 3}
 
 using namespace std;
 
 int main()
 {
-	freopen("NewProgLog.txt", "w", stdout);
+	freopen("ErrAt(3,3).txt", "w", stdout);
 	srand( (unsigned)time(NULL) );
 
 	QubitArray regErr(COLS, LINES);
@@ -32,46 +32,59 @@ int main()
 	regNoErr.setEnvCoupling(0);
 	RandQAlg alg(COLS, LINES, DEPTH);
 
-	const int ampsNum = (1 << (LINES * COLS));
-	double ampsErr[DEPTH][ampsNum] = {{0.0}};
-	double ampsNoErr[DEPTH][ampsNum] = {{0.0}};
+	double probsErr[LINES][COLS][DEPTH] = {{{0.0}}};
+	//double probsNoErr[LINES][COLS][DEPTH] = {{{0.0}}};
 
 	alg.generate();
-	for(int j = 0; j < AVG; j++)
-	{
-		cerr << "Step " << j + 1 << " of "<< AVG << "\n";
 
-		for(int d = 0; d < DEPTH; d++)
-		{
-			alg.evaluateLayer(regErr, d);
-			alg.evaluateLayer(regNoErr, d);
-			if(d == ERRDEPTH)
-				regErr.XGate(ERRCORDS);
-			for(int amp = 0; amp < ampsNum;	amp++)
+	for(int d = 0; d < DEPTH; d++)
+	{
+		//cerr << "Depth " << d << "\n";
+		alg.evaluateLayer(regErr, d);
+		alg.evaluateLayer(regNoErr, d);
+		if(d == ERRDEPTH)
+			regErr.XGate(ERRCORDS);
+		for(int l = 0; l < LINES; l++)
+			for(int c = 0; c < COLS; c++)
 			{
-				ampsErr[d][amp] += regErr.getSquaredAmp(amp);
-				ampsNoErr[d][amp] += regNoErr.getSquaredAmp(amp);
+				probsErr[l][c][d] = abs(regErr.calcProb({c, l}) - regNoErr.calcProb({c, l}));
+			//	probsNoErr[l][c][d] = regNoErr.calcProb({c, l});
 			}
-		}
 	}
 
-	cout << fixed << "{";
+	cout << fixed << "{ ";
+
 	for(int d = 0; d < DEPTH; d++)
 	{
 		cout << "{";
-		for(int amp = 0; amp < ampsNum;	amp++)
-		{
-			cout << "{" << ampsNoErr[d][amp] * ampsNum / AVG << ", " << ampsErr[d][amp] * ampsNum / AVG << "}";
-			if(amp + 1 < ampsNum)
-				cout << ", ";
-		}
+		for(int l = 0; l < LINES; l++)
+			for(int c = 0; c < COLS; c++)
+			{
+				cout << "{" << l << ", " << c << ", " << probsErr[l][c][d] << "}";
+				//cout << probsErr[l][c][d];
+				if(l + 1 < LINES || c + 1 < COLS)
+					cout << ", ";
+			}
 		cout << "}";
 		if(d + 1 < DEPTH)
 			cout << ", ";
-		else
-			cout << "\n\n";
 	}
-	cout << "}\n";
+	cout << "}\n ";
+	/*for(int d = 0; d < DEPTH; d++)
+	{
+		cout << "{";
+		for(int l = 0; l < LINES; l++)
+			for(int c = 0; c < COLS; c++)
+			{
+				cout << "{" << l << ", " << c << ", "<< probsErr[l][c][d] << "}";
+				if(l + 1 < LINES || c + 1 < COLS)
+					cout << ", ";
+			}
+		cout << "}";
+		if(d + 1 < DEPTH)
+			cout << ", ";
+	}
+	cout << "}\n} ";*/
 
 	return 0;
 }

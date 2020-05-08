@@ -30,6 +30,9 @@ public:
 	void setMultiGateTime(double val){ multiGateTime = val; }
 	void setLoseTime(double val){ loseTime = val; }
 	void setDynamicNoise(double val){ dynamicNoise = val; }
+	void setSpamErr(double val){ spamError1to0 = spamError0to1 = val; }
+	void setSpamErr0to1(double val){ spamError0to1 = val; }
+	void setSpamErr1to0(double val){ spamError1to0 = val; }
 
 	int getXSize(){ return xSize; }
 	int getYSize(){ return ySize; }
@@ -50,10 +53,10 @@ public:
 
 	double calcBellFidelity(cords first, cords sec);
 	double calcBellFidelityDirect(cords first, cords sec);
-	int meas(cords target){ return measure(qubits, getIndex(target)); }
+	int meas(cords target);
 	double getSquaredAmp(int index);
 	friend double fidelity(const QubitArray &arr1, const QubitArray &arr2){ return calcFidelity(arr1.qubits, arr2.qubits); }
-	double calcProb(cords target){ return calcProbOfOutcome(qubits, getIndex(target), 1); }
+	double calcProb(cords target);
 
 	constexpr int getIndex(cords c){ return c.y * xSize + c.x; }
 
@@ -72,6 +75,8 @@ private:
 	double multiGateTime;
 	double loseTime;
 	double dynamicNoise;
+	double spamError1to0;
+	double spamError0to1;
 
 	void updateTotalTime();
 	std::random_device rd{};

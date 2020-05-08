@@ -13,6 +13,7 @@ QubitArray::QubitArray(int a, int b)
 
 	setSingleErrRate(0.01);
 	setMultiErrRate(0.1);
+	setSpamErr(0.0);
 
 	singleGateTime = 0.001;
 	multiGateTime = 0.002;
@@ -30,7 +31,17 @@ void QubitArray::setSize(int a, int b)
 
 double QubitArray::getSquaredAmp(int index)
 {
-	double real = getAmp(qubits, index).real, imag = getAmp(qubits, index).imag;
+	//supports SPAM errors
+	int n = xSize * ySize, spamedIndex = 0;
+	std::uniform_real_distribution rand(0.0, 1.0);
+	for(int i = 0; i < n; i++)
+	{
+		double errSeed = rand(gen);
+		bool bit = ((index & (1 << i)) >> i);
+		if((bit && errSeed >= spamError1to0) || (!bit && errSeed < spamError0to1))
+			spamedIndex += (1 << i);
+	}
+	double real = getAmp(qubits, spamedIndex).real, imag = getAmp(qubits, spamedIndex).imag;
 	return real * real + imag * imag;
 }
 
@@ -193,6 +204,24 @@ double QubitArray::calcBellFidelityDirect(cords first, cords sec)
 		swapGate(noNoiseReg, 1, getIndex(sec));
 
 	return calcFidelity(qubits, noNoiseReg);
+}
+
+int QubitArray::meas(cords target)
+{
+	int result = measure(qubits, getIndex(target));
+	std::uniform_real_distribution rand(0.0, 1.0);
+	bool errSeed = rand(gen);
+	if((result && errSeed >= spamError1to0) || ((!result) &&  errSeed < spamError0to1))
+		return 1;
+	if((result && errSeed < spamError1to0) && ((!result) &&  errSeed >= spamError0to1))
+		return 0;
+	return result;
+}
+
+double QubitArray::calcProb(cords target)
+{
+	double result = calcProbOfOutcome(qubits, getIndex(target), 1);
+	return (result * (1 - spamError1to0)) + ((1 - result) * spamError0to1);
 }
 
 void QubitArray::applyNoiseGate(int index, double coupling, double time)

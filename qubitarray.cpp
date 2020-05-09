@@ -45,6 +45,13 @@ double QubitArray::getSquaredAmp(int index)
 	return real * real + imag * imag;
 }
 
+void QubitArray::dropQubit(int index)
+{
+	if(calcProbOfOutcome(qubits, index, 0) < OUTCOME_PROB_EPS)
+		pauliX(qubits, index);
+	collapseToOutcome(qubits, index, 0);
+}
+
 void QubitArray::updateTotalTime()
 {
 	if(singleGateInCurLayer && !multiGateInCurLayer)
@@ -79,9 +86,9 @@ void QubitArray::generateBell(cords first, cords sec)
 {
 	hadamard(qubits, getIndex(first));
 	controlledNot(qubits, getIndex(first), getIndex(sec));
-	multiGateInCurLayer = true;
-	usedInCurLayer[getIndex(first)] = usedInCurLayer[getIndex(sec)] = true;
-	lastNoiseTime[getIndex(first)] = lastNoiseTime[getIndex(sec)] = totalTime + multiGateTime;
+	//multiGateInCurLayer = true;
+	//usedInCurLayer[getIndex(first)] = usedInCurLayer[getIndex(sec)] = true;
+	//lastNoiseTime[getIndex(first)] = lastNoiseTime[getIndex(sec)] = totalTime + multiGateTime;
 }
 
 void QubitArray::cz(cords control, cords target)
@@ -97,7 +104,7 @@ void QubitArray::cz(cords control, cords target)
 	controlledPhaseFlip(qubits, getIndex(control), getIndex(target));
 
 	if(isLost[getIndex(target)])
-		collapseToOutcome(qubits, getIndex(target), 0);
+		dropQubit(getIndex(target));
 
 	multiGateInCurLayer = true;
 	applyMultiGateErr(control, target);
@@ -210,12 +217,12 @@ int QubitArray::meas(cords target)
 {
 	int result = measure(qubits, getIndex(target));
 	std::uniform_real_distribution rand(0.0, 1.0);
-	bool errSeed = rand(gen);
+	double errSeed = rand(gen);
 	if((result && errSeed >= spamError1to0) || ((!result) &&  errSeed < spamError0to1))
 		return 1;
-	if((result && errSeed < spamError1to0) && ((!result) &&  errSeed >= spamError0to1))
+	if((result && errSeed < spamError1to0) || ((!result) &&  errSeed >= spamError0to1))
 		return 0;
-	return result;
+	return result;	//just to escape warning
 }
 
 double QubitArray::calcProb(cords target)
@@ -240,7 +247,7 @@ void QubitArray::applyNoise(int index)
 		if(rand(gen) > std::exp((-1) * totalTime/loseTime))
 		{
 			isLost[index] = true;
-			collapseToOutcome(qubits, index, 0);
+			dropQubit(index);
 			return;
 		}
 	applyNoiseGate(index, envCoupling, totalTime - lastNoiseTime[index]);

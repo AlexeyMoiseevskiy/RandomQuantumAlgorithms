@@ -7,6 +7,7 @@
 #include <functional>
 
 #define _USE_MATH_DEFINES
+#define OUTCOME_PROB_EPS 1e-10
 
 struct cords
 {
@@ -21,7 +22,7 @@ public:
 	~QubitArray(){}
 
 	void setSize(int a, int b);
-	void setEnvCoupling(int val){ envCoupling = val; }
+	void setEnvCoupling(double val){ envCoupling = val; }
 	void setSingleGateCoupling(double val){ singleGateCoupling = val; }
 	void setMultiGateCoupling(double val){ multiGateCoupling = val; }
 	void setSingleErrRate(double val){ singleErrRate = val / 2; }
@@ -39,13 +40,17 @@ public:
 
 	void init();
 	void generateBell(cords first, cords sec);
+	void pureX(cords target){ pauliX(qubits, getIndex(target)); }
+	void pureH(cords target){ hadamard(qubits, getIndex(target)); }
+	void pureCZ(cords control, cords target){ controlledPhaseFlip(qubits, getIndex(control), getIndex(target)); }
+	void dropQubit(int index);
 	void cz(cords control, cords target);
 	void swap(cords first, cords sec);
 	int move(cords init, cords dest);
 
 	void applySingleGate(cords target, std::function<void(Qureg, int)> gate);
 	void applyRotation(cords target, Vector v, double angle);
-	void hadamardGate(cords target){ applySingleGate(target, &hadamard); }
+	void hadamardGate(cords target){ applySingleGate(target, hadamard); }
 	void sqrtX(cords target){ applySingleGate(target, [](Qureg reg, int index){rotateX(reg, index, M_PI_2);}); }
 	void sqrtY(cords target){ applySingleGate(target, [](Qureg reg, int index){rotateY(reg, index, M_PI_2);}); }
 	void TGate(cords target){ applySingleGate(target, tGate); }

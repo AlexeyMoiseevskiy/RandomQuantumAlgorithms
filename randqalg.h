@@ -38,8 +38,6 @@ public:
 	static constexpr auto gateWait = Gate(gateName::wait);
 
 	Gate genSingleGate(cords target);
-	std::vector<std::vector<Gate>>& getAlgorithm();
-	void setAlgorithm(std::vector<std::vector<Gate>> &algorithm);
 	void generate();
 	void evaluate(QubitArray &qubits);
 	void evaluateLayer(QubitArray &qubits, int layerIndex);
@@ -61,7 +59,9 @@ private:
 
 	void fillLine(int lineNum, int begin);
 	void fillCol(int colNum, int begin);
-	void addLayer(const std::array<int, lineSamplesInMask> &beginPoints, int numOfLines, void (RandQAlg::*fillerFunc)(int, int));
+	std::function<void(int,int)> lineFiller = [this](int lineNum, int begin) { this->fillLine(lineNum, begin); };
+	std::function<void(int,int)> colFiller = [this](int lineNum, int begin) { this->fillCol(lineNum, begin); };
+	void addLayer(const std::array<int, lineSamplesInMask> &beginPoints, int numOfLines, std::function<void(int,int)> fillerFunc);
 };
 
 #endif // RANDQALG_H

@@ -7,73 +7,70 @@
 #include <stdio.h>
 #include <cmath>
 
-#define LINES 1
-#define COLS 2
+#define LINES 4
+#define COLS 4
 #define DEPTH 40
-#define AVG 100000
-#define ALGS 50
+#define AVR 50
+#define ALGS 100
 
 using namespace std;
 
-void czTomo(QubitArray &qubits, bool first, bool sec)
-{
-	double case00 = 0, case01 = 0, case10 = 0, case11 = 0;
-	cords ctrl = {0, 0}, targ = {1, 0};
-	for(int i = 0; i < AVG; i++)
-	{
-		qubits.init();
-		if(first)
-			qubits.pureX(ctrl);
-		if(sec)
-			qubits.pureX(targ);
-
-		qubits.hadamardGate(targ);
-		qubits.cz(ctrl, targ);
-		qubits.hadamardGate(targ);
-
-		/*int qub1 = qubits.meas(ctrl);
-		int qub2 = qubits.meas(targ);
-
-		if(qub1 == 0 && qub2 == 0)
-			case00++;
-		if(qub1 == 0 && qub2 == 1)
-			case01++;
-		if(qub1 == 1 && qub2 == 0)
-			case10++;
-		if(qub1 == 1 && qub2 == 1)
-			case11++;
-		*/
-		case00 += qubits.getSquaredAmp(0);
-		case10 += qubits.getSquaredAmp(1);
-		case01 += qubits.getSquaredAmp(2);
-		case11 += qubits.getSquaredAmp(3);
-	}
-	cout << "{"<< case00 * 100 / AVG << ", " << case01 * 100 / AVG << ", "
-		 << case10 * 100 / AVG << ", " << case11 * 100 / AVG << "},\n";
-}
-
 int main()
 {
-	//freopen("CZLogs.txt", "w", stdout);
+	freopen("DistrAlgsErr16q.txt", "w", stdout);
 	srand( (unsigned)time(NULL) );
 
-	QubitArray qubits(COLS, LINES);
-	qubits.setSingleErrRate(0.001);
-	qubits.setMultiErrRate(0.01);
-	qubits.setEnvCoupling(0.01);
-	qubits.setSingleGateTime(0.01);
-	qubits.setMultiGateTime(0.1);
-	qubits.setLoseTime(1000);
-	qubits.setDynamicNoise(0.04);
-	qubits.setSpamErr0to1(0.01);
-	qubits.setSpamErr1to0(0.03);
-	cout << "{\n";
-	czTomo(qubits, 0, 0);
-	czTomo(qubits, 0, 1);
-	czTomo(qubits, 1, 0);
-	czTomo(qubits, 1, 1);
+	QubitArray noErrReg(COLS, LINES);
+	noErrReg.setSingleErrRate(0.00);
+	noErrReg.setMultiErrRate(0.0);
+	noErrReg.setEnvCoupling(0.0);
+	noErrReg.setSingleGateTime(0.01);
+	noErrReg.setMultiGateTime(0.1);
+	QubitArray errReg(COLS, LINES);
+	errReg.setSingleErrRate(0.001);
+	errReg.setMultiErrRate(0.01);
+	errReg.setEnvCoupling(0.01);
+	errReg.setSingleGateTime(0.01);
+	errReg.setMultiGateTime(0.1);
+	errReg.setLoseTime(1000);
+	errReg.setDynamicNoise(0.04);
+	errReg.setSpamErr0to1(0.01);
+	errReg.setSpamErr1to0(0.03);
 
-	cout << "}\n";
+	RandQAlg alg(COLS, LINES, DEPTH);
+	static constexpr int ampNum = (1 << LINES * COLS);
+	double ampsErr[ampNum] = {0.0};
+	double ampsNoErr[ampNum] = {0.0};
+
+	cout << fixed << "{\n";
+	for(int k = 0; k < ALGS; k++)
+	{
+		cerr << "Step " << k + 1 << " of " << ALGS << "\n";
+
+		alg.generate();
+		for(int i = 0; i < ampNum; i++)
+			ampsErr[i] = ampsNoErr[i] = 0.0;
+		for(int i = 0; i < AVR; i++)
+		{
+			alg.evaluate(noErrReg);
+			alg.evaluate(errReg);
+			for(int j = 0; j < ampNum; j++)
+			{
+				ampsErr[j] += errReg.getSquaredAmp(j);
+				ampsNoErr[j] += noErrReg.getSquaredAmp(j);
+			}
+		}
+
+		double xeb = 0;
+		for(int i = 0; i < ampNum; i++)
+		{
+			xeb += (ampsNoErr[i] * ampsErr[i]) / (AVR * AVR);
+		}
+		cout << ampNum * xeb - 1;
+		if(k + 1 < ALGS)
+			cout << ", ";
+	}
+	cout << "\n}";
 
 	return 0;
 }

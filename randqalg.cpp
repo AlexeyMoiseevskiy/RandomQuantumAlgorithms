@@ -54,11 +54,11 @@ Gate RandQAlg::lastSingleGateApplyed(cords qubit)
 	int index = getIndex(qubit);
 	for(int i = currentDepth - 1; i >= 0; i--)
 	{
-		auto wantedName = layers[i][index].name;
+		auto lastGateName = layers[i][index].name;
 		auto iterator = std::find_if(singleGates.begin(), singleGates.end(),
-			[wantedName](Gate a)
+			[lastGateName](Gate a)
 			{
-				return(a.name ==  wantedName);
+				return(a.name ==  lastGateName);
 			}
 		);
 		if(iterator != singleGates.end())
@@ -94,6 +94,9 @@ Gate RandQAlg::genSingleGate(cords target)
 
 void RandQAlg::fillLine(int lineNum, int begin)
 {
+	if(begin > cols)
+		return;
+
 	int count;
 	for(count = 0; count < begin; count++)
 		addGate(genSingleGate({count, lineNum}), {count, lineNum});
@@ -113,6 +116,9 @@ void RandQAlg::fillLine(int lineNum, int begin)
 
 void RandQAlg::fillCol(int colNum, int begin)
 {
+	if(begin > lines)
+		return;
+
 	int count;
 	for(count = 0; count < begin; count++)
 		addGate(genSingleGate({colNum, count}), {colNum, count});
@@ -130,14 +136,14 @@ void RandQAlg::fillCol(int colNum, int begin)
 		addGate(genSingleGate({colNum, count}), {colNum, count});
 }
 
-void RandQAlg::addLayer(const std::array<int, lineSamplesInMask> &beginPoints, int numOfLines, void (RandQAlg::*fillerFunc)(int, int))
+void RandQAlg::addLayer(const std::array<int, lineSamplesInMask> &beginPoints, int numOfLines, std::function<void (int, int)> fillerFunc)
 {
 	if(currentDepth >= givenDepth)
 		return;
 
 	for(int lineSample = 0; lineSample < lineSamplesInMask; lineSample++)
 		for(int line = lineSample; line < numOfLines; line += lineSamplesInMask)
-			(this->*fillerFunc)(line, beginPoints[lineSample]);
+			fillerFunc(line, beginPoints[lineSample]);
 	currentDepth++;
 }
 
@@ -146,14 +152,14 @@ void RandQAlg::generate()
 	currentDepth = 0;
 	while(currentDepth < givenDepth)
 	{
-		addLayer({2, 0}, lines, &RandQAlg::fillLine);
-		addLayer({0, 2}, lines, &RandQAlg::fillLine);
-		addLayer({3, 1}, cols, &RandQAlg::fillCol);
-		addLayer({1, 3}, cols, &RandQAlg::fillCol);
-		addLayer({3, 1}, lines, &RandQAlg::fillLine);
-		addLayer({1, 3}, lines, &RandQAlg::fillLine);
-		addLayer({0, 2}, cols, &RandQAlg::fillCol);
-		addLayer({2, 0}, cols, &RandQAlg::fillCol);
+		addLayer({2, 0}, lines, lineFiller);
+		addLayer({0, 2}, lines, lineFiller);
+		addLayer({3, 1}, cols, colFiller);
+		addLayer({1, 3}, cols, colFiller);
+		addLayer({3, 1}, lines, lineFiller);
+		addLayer({1, 3}, lines, lineFiller);
+		addLayer({0, 2}, cols, colFiller);
+		addLayer({2, 0}, cols, colFiller);
 	}
 }
 

@@ -33,16 +33,19 @@ double QubitArray::getSquaredAmp(int index)
 {
 	//supports SPAM errors
 	int n = xSize * ySize, spamedIndex = 0;
+	double normRatio = 1.;
 	std::uniform_real_distribution rand(0.0, 1.0);
 	for(int i = 0; i < n; i++)
 	{
-		double errSeed = rand(gen);
-		bool bit = ((index & (1 << i)) >> i);
-		if((bit && errSeed >= spamError1to0) || (!bit && errSeed < spamError0to1))
+		bool bit = index & (1 << i);
+		double r = bit ? (1. + spamError0to1 - spamError1to0) : (1. - spamError0to1 + spamError1to0);
+		double errSeed = rand(gen) * r;
+		normRatio *= r;
+		if(bit ? (errSeed >= spamError0to1) : (errSeed < spamError1to0))
 			spamedIndex += (1 << i);
 	}
 	double real = getAmp(qubits, spamedIndex).real, imag = getAmp(qubits, spamedIndex).imag;
-	return real * real + imag * imag;
+	return normRatio * (real * real + imag * imag);
 }
 
 void QubitArray::dropQubit(int index)

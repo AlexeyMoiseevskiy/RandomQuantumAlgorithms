@@ -20,6 +20,7 @@ QubitArray::QubitArray(int a, int b)
 
 	loseTime = 0;
 	dynamicNoise = 0;
+	ampDampingRate = 0;
 }
 
 void QubitArray::setSize(int a, int b)
@@ -254,6 +255,7 @@ void QubitArray::applyNoise(int index)
 			return;
 		}
 	applyNoiseGate(index, envCoupling, totalTime - lastNoiseTime[index]);
+	applyDamping(index, totalTime - lastNoiseTime[index]);
 	lastNoiseTime[index] = totalTime;
 }
 
@@ -278,4 +280,23 @@ void QubitArray::applyMultiGateErr(cords target)
 	double effectiveTime = -(log(1 - 2 * multiErrRate) / (2 * multiGateCoupling));
 	applyNoiseGate(getIndex(target), multiGateCoupling, effectiveTime);
 	lastNoiseTime[getIndex(target)] = totalTime + multiGateTime;
+}
+
+void QubitArray::applyDamping(int index, double time)
+{
+	std::normal_distribution<double> rand(0, 1 - exp(- ampDampingRate * time));
+	double phi = rand(gen);
+
+	ComplexMatrix2 dampingNoiseMatrix;
+	dampingNoiseMatrix.real[0][0] = 1;
+	dampingNoiseMatrix.real[0][1] = 0;
+	dampingNoiseMatrix.real[1][0] = 0;
+	dampingNoiseMatrix.real[1][1] = exp(-ampDampingRate * time / 2);
+
+	dampingNoiseMatrix.imag[0][0] = 0;
+	dampingNoiseMatrix.imag[0][1] = 0;
+	dampingNoiseMatrix.imag[1][0] = phi;
+	dampingNoiseMatrix.imag[1][1] = 0;
+
+	applyMatrix2(qubits, index, dampingNoiseMatrix);
 }

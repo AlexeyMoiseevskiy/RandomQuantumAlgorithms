@@ -7,70 +7,53 @@
 #include <stdio.h>
 #include <cmath>
 
-#define LINES 4
+#define LINES 3
 #define COLS 4
-#define DEPTH 40
-#define AVR 50
-#define ALGS 100
+#define DEPTH 20
+#define AVG 50
+#define ALGS 50
 
 using namespace std;
 
 int main()
 {
-	freopen("DistrAlgsErr16q.txt", "w", stdout);
+	freopen("LoseTime0.001.txt", "w", stdout);
 	srand( (unsigned)time(NULL) );
 
-	QubitArray noErrReg(COLS, LINES);
-	noErrReg.setSingleErrRate(0.00);
-	noErrReg.setMultiErrRate(0.0);
-	noErrReg.setEnvCoupling(0.0);
-	noErrReg.setSingleGateTime(0.01);
-	noErrReg.setMultiGateTime(0.1);
-	QubitArray errReg(COLS, LINES);
-	errReg.setSingleErrRate(0.001);
-	errReg.setMultiErrRate(0.01);
-	errReg.setEnvCoupling(0.01);
-	errReg.setSingleGateTime(0.01);
-	errReg.setMultiGateTime(0.1);
-	errReg.setLoseTime(1000);
-	errReg.setDynamicNoise(0.04);
-	errReg.setSpamErr0to1(0.01);
-	errReg.setSpamErr1to0(0.03);
-
+	QubitArray qubits(COLS, LINES);
+	qubits.setSingleErrRate(0.000);
+	qubits.setMultiErrRate(0.00);
+	qubits.setEnvCoupling(0.0);
+	//qubits.setAmpDampingRate(1.5);
+	qubits.setLoseTime(0.001);
 	RandQAlg alg(COLS, LINES, DEPTH);
-	static constexpr int ampNum = (1 << LINES * COLS);
-	double ampsErr[ampNum] = {0.0};
-	double ampsNoErr[ampNum] = {0.0};
+	alg.generate();
 
-	cout << fixed << "{\n";
+	static constexpr int ampNum = (1 << LINES * COLS);
+	double amps[ampNum] = {0.0};
+
+	cout << fixed << "{ ";
 	for(int k = 0; k < ALGS; k++)
 	{
 		cerr << "Step " << k + 1 << " of " << ALGS << "\n";
-
+		for(int i = 0; i < ampNum; i++)
+			amps[i] = 0.0;
 		alg.generate();
-		for(int i = 0; i < ampNum; i++)
-			ampsErr[i] = ampsNoErr[i] = 0.0;
-		for(int i = 0; i < AVR; i++)
+		for(int i = 0; i < AVG; i++)
 		{
-			alg.evaluate(noErrReg);
-			alg.evaluate(errReg);
+			alg.evaluate(qubits);
 			for(int j = 0; j < ampNum; j++)
-			{
-				ampsErr[j] += errReg.getSquaredAmp(j);
-				ampsNoErr[j] += noErrReg.getSquaredAmp(j);
-			}
+				amps[j] += qubits.getSquaredAmp(j);
 		}
 
-		double xeb = 0;
-		for(int i = 0; i < ampNum; i++)
+		for(int j = 0; j < ampNum; j++)
 		{
-			xeb += (ampsNoErr[i] * ampsErr[i]) / (AVR * AVR);
+			cout << amps[j] * ampNum / AVG;
+			if(j + 1 < ampNum || k + 1 < ALGS)
+				cout << ",\n";
 		}
-		cout << ampNum * xeb - 1;
-		if(k + 1 < ALGS)
-			cout << ", ";
 	}
-	cout << "\n}";
+	cout << "}";
 
 	return 0;
 }

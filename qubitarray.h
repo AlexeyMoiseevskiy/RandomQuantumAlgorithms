@@ -34,6 +34,7 @@ public:
 	void setSpamErr(double val){ spamError1to0 = spamError0to1 = val; }
 	void setSpamErr0to1(double val){ spamError0to1 = val; }
 	void setSpamErr1to0(double val){ spamError1to0 = val; }
+	void setAmpDampingRate(double val){ ampDampingRate = val; }
 
 	int getXSize(){ return xSize; }
 	int getYSize(){ return ySize; }
@@ -82,6 +83,7 @@ private:
 	double dynamicNoise;
 	double spamError1to0;
 	double spamError0to1;
+	double ampDampingRate;
 
 	void updateTotalTime();
 	std::random_device rd{};
@@ -94,6 +96,7 @@ private:
 	void applySingleGateErr(cords target);
 	void applyMultiGateErr(cords target);
 	void applyMultiGateErr(cords first, cords sec){ applyMultiGateErr(first); applyMultiGateErr(sec); }
+	void applyDamping(int index, double time);
 
 	double totalTime;
 	bool singleGateInCurLayer;

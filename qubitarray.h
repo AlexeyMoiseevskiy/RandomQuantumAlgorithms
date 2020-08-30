@@ -19,9 +19,8 @@ class QubitArray
 {
 public:
 	QubitArray(int a, int b);
-	~QubitArray(){}
+	~QubitArray();
 
-	void setSize(int a, int b);
 	void setEnvCoupling(double val){ envCoupling = val; }
 	void setSingleGateCoupling(double val){ singleGateCoupling = val; }
 	void setMultiGateCoupling(double val){ multiGateCoupling = val; }
@@ -40,6 +39,7 @@ public:
 	int getYSize(){ return ySize; }
 
 	void init();
+	void reset();
 	void generateBell(cords first, cords sec);
 	void pureX(cords target){ pauliX(qubits, getIndex(target)); }
 	void pureH(cords target){ hadamard(qubits, getIndex(target)); }

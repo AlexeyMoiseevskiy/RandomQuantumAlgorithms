@@ -165,7 +165,7 @@ void RandQAlg::generate()
 
 void RandQAlg::init(QubitArray &qubits)
 {
-	qubits.init();
+	qubits.reset();
 	//H layer
 	for(int i = 0; i < cols; i++)
 		for(int j = 0; j < lines; j++)

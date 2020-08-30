@@ -5,7 +5,14 @@
 QubitArray::QubitArray(int a, int b)
 {
 	env = createQuESTEnv();
-	setSize(a, b);
+	xSize = a;
+	ySize = b;
+
+	qubits = createQureg(xSize * ySize, env);
+	lastNoiseTime.resize(xSize * ySize);
+	usedInCurLayer.resize(xSize * ySize);
+	isLost.resize(xSize * ySize);
+	reset();
 
 	envCoupling = 0.2;
 	singleGateCoupling = 0.2;
@@ -23,11 +30,10 @@ QubitArray::QubitArray(int a, int b)
 	ampDampingRate = 0;
 }
 
-void QubitArray::setSize(int a, int b)
+QubitArray::~QubitArray()
 {
-	xSize = a;
-	ySize = b;
-	init();
+	destroyQureg(qubits, env);
+	destroyQuESTEnv(env);
 }
 
 double QubitArray::getSquaredAmp(int index)
@@ -64,15 +70,13 @@ void QubitArray::updateTotalTime()
 		totalTime += multiGateTime;
 }
 
-void QubitArray::init()
+void QubitArray::reset()
 {
-	qubits = createQureg(xSize * ySize, env);
-	lastNoiseTime.resize(xSize * ySize);
-	usedInCurLayer.resize(xSize * ySize);
-	isLost.resize(xSize * ySize);
+	initZeroState(qubits);
 	totalTime = 0;
 	std::fill(lastNoiseTime.begin(), lastNoiseTime.end(), 0);
 	std::fill(isLost.begin(), isLost.end(), false);
+	std::fill(usedInCurLayer.begin(), usedInCurLayer.end(), false);
 	singleGateInCurLayer = false;
 	multiGateInCurLayer = false;
 	startNewLayer();

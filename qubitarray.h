@@ -65,6 +65,7 @@ public:
 	double calcProb(cords target);
 
 	constexpr int getIndex(cords c){ return c.y * xSize + c.x; }
+	constexpr cords getCords(int index){ return {index / xSize, index % xSize}; };
 
 private:
 	QuESTEnv env;

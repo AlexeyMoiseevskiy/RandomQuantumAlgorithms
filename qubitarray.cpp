@@ -5,6 +5,8 @@
 QubitArray::QubitArray(int a, int b)
 {
 	env = createQuESTEnv();
+	unsigned long seed = gen();
+	seedQuEST(&seed, 1);
 	xSize = a;
 	ySize = b;
 

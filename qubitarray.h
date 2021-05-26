@@ -26,8 +26,8 @@ public:
 	void setMultiGateCoupling(double val){ multiGateCoupling = val; }
 	void setSingleErrRate(double val){ singleErrRate = val / 2; }
 	void setMultiErrRate(double val){ multiErrRate = val / 2; }
-	void setSingleGateTime(double val){ singleGateTime = val; }
-	void setMultiGateTime(double val){ multiGateTime = val; }
+	void setSingleGateTime(double val);
+	void setMultiGateTime(double val);
 	void setLoseTime(double val){ loseTime = val; }
 	void setDynamicNoise(double val){ dynamicNoise = val; }
 	void setSpamErr(double val){ spamError1to0 = spamError0to1 = val; }
@@ -38,8 +38,8 @@ public:
 	int getXSize(){ return xSize; }
 	int getYSize(){ return ySize; }
 
-	void init();
 	void reset();
+	void resize(int newX, int newY);
 	void generateBell(cords first, cords sec);
 	void pureX(cords target){ pauliX(qubits, getIndex(target)); }
 	void pureH(cords target){ hadamard(qubits, getIndex(target)); }

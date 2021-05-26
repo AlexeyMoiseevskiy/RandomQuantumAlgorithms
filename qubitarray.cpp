@@ -20,12 +20,12 @@ QubitArray::QubitArray(int a, int b)
 	singleGateCoupling = 0.2;
 	multiGateCoupling = 0.2;
 
-	setSingleErrRate(0.01);
-	setMultiErrRate(0.1);
+	setSingleErrRate(0.0);
+	setMultiErrRate(0.0);
 	setSpamErr(0.0);
 
-	singleGateTime = 0.001;
-	multiGateTime = 0.002;
+	singleGateTime = 0.00;
+	multiGateTime = 0.00;
 
 	loseTime = 0;
 	dynamicNoise = 0;
@@ -82,6 +82,15 @@ void QubitArray::reset()
 	singleGateInCurLayer = false;
 	multiGateInCurLayer = false;
 	startNewLayer();
+}
+void QubitArray::resize(int newX, int newY)
+{
+	if(newX == xSize && newY == ySize)
+		return;
+	xSize = newX;
+	ySize = newY;
+	qubits = createQureg(xSize * ySize, env);
+	reset();
 }
 
 void QubitArray::startNewLayer()
@@ -305,4 +314,18 @@ void QubitArray::applyDamping(int index, double time)
 	dampingNoiseMatrix.imag[1][1] = 0;
 
 	applyMatrix2(qubits, index, dampingNoiseMatrix);
+}
+
+void QubitArray::setSingleGateTime(double val)
+{
+	singleGateTime = val;
+	if(singleGateInCurLayer || multiGateInCurLayer)
+		startNewLayer();
+}
+
+void QubitArray::setMultiGateTime(double val)
+{
+	multiGateTime = val;
+	if(singleGateInCurLayer || multiGateInCurLayer)
+		startNewLayer();
 }

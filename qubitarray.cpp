@@ -1,6 +1,7 @@
 #include "qubitarray.h"
 #include <stdexcept>
 #include <cmath>
+#include <string>
 
 QubitArray::QubitArray(int a, int b)
 {
@@ -89,6 +90,7 @@ void QubitArray::resize(int newX, int newY)
 		return;
 	xSize = newX;
 	ySize = newY;
+	destroyQureg(qubits, env);
 	qubits = createQureg(xSize * ySize, env);
 	reset();
 }
@@ -318,6 +320,8 @@ void QubitArray::applyDamping(int index, double time)
 
 void QubitArray::setSingleGateTime(double val)
 {
+	if (singleGateTime == val)
+		return;
 	singleGateTime = val;
 	if(singleGateInCurLayer || multiGateInCurLayer)
 		startNewLayer();
@@ -325,7 +329,16 @@ void QubitArray::setSingleGateTime(double val)
 
 void QubitArray::setMultiGateTime(double val)
 {
+	if(multiGateTime == val)
+		return;
 	multiGateTime = val;
 	if(singleGateInCurLayer || multiGateInCurLayer)
 		startNewLayer();
+}
+
+void QubitArray::setEnvCoupling(double val)
+{
+	if(val >= 0.5)
+		throw std::invalid_argument(std::string("enviroment coupling must be in range (0, 0.5), ") + std::to_string(val) + " obtained");
+	envCoupling = val;
 }

@@ -21,7 +21,7 @@ public:
 	QubitArray(int a, int b);
 	~QubitArray();
 
-	void setEnvCoupling(double val){ envCoupling = val; }
+	void setEnvCoupling(double val);
 	void setSingleGateCoupling(double val){ singleGateCoupling = val; }
 	void setMultiGateCoupling(double val){ multiGateCoupling = val; }
 	void setSingleErrRate(double val){ singleErrRate = val / 2; }

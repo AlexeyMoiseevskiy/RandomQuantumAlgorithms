@@ -92,6 +92,9 @@ void QubitArray::resize(int newX, int newY)
 	ySize = newY;
 	destroyQureg(qubits, env);
 	qubits = createQureg(xSize * ySize, env);
+	lastNoiseTime.resize(xSize * ySize);
+	usedInCurLayer.resize(xSize * ySize);
+	isLost.resize(xSize * ySize);
 	reset();
 }
 

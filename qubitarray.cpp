@@ -2,9 +2,12 @@
 #include <stdexcept>
 #include <cmath>
 #include <string>
+#include <iostream>
 
 QubitArray::QubitArray(int a, int b)
 {
+	if(a == 0 || b == 0)
+		throw std::invalid_argument("Cannot create qureg with 0 qubits");
 	env = createQuESTEnv();
 	unsigned long seed = gen();
 	seedQuEST(&seed, 1);
@@ -37,6 +40,23 @@ QubitArray::~QubitArray()
 {
 	destroyQureg(qubits, env);
 	destroyQuESTEnv(env);
+}
+
+int QubitArray::getIndex(cords c) const
+{
+	if(c.x < 0 || c.y < 0)
+		throw std::invalid_argument("Negative qubit index given");
+	if(c.x >= xSize || c.y >= ySize)
+		throw std::out_of_range("Out of qubit register");
+	return c.y * xSize + c.x;
+}
+cords QubitArray::getCords(int index) const
+{
+	if(index < 0)
+		throw std::invalid_argument("Negative qubit index given");
+	if(index >= xSize * ySize)
+		throw std::out_of_range("Out of qubit register");
+	return {index / xSize, index % xSize};
 }
 
 double QubitArray::getSquaredAmp(int index)

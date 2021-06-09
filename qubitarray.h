@@ -19,6 +19,7 @@ class QubitArray
 {
 public:
 	QubitArray(int a, int b);
+	QubitArray():QubitArray(1, 1){}
 	~QubitArray();
 
 	void setEnvCoupling(double val);
@@ -64,8 +65,8 @@ public:
 	friend double fidelity(const QubitArray &arr1, const QubitArray &arr2){ return calcFidelity(arr1.qubits, arr2.qubits); }
 	double calcProb(cords target);
 
-	constexpr int getIndex(cords c){ return c.y * xSize + c.x; }
-	constexpr cords getCords(int index){ return {index / xSize, index % xSize}; };
+	int getIndex(cords c) const;
+	cords getCords(int index) const;
 
 private:
 	QuESTEnv env;

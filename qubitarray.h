@@ -22,18 +22,18 @@ public:
 	~QubitArray();
 
 	void setEnvCoupling(double val);
-	void setSingleGateCoupling(double val){ singleGateCoupling = val; }
-	void setMultiGateCoupling(double val){ multiGateCoupling = val; }
-	void setSingleErrRate(double val){ singleErrRate = val / 2; }
-	void setMultiErrRate(double val){ multiErrRate = val / 2; }
+	void setSingleGateCoupling(double val);
+	void setMultiGateCoupling(double val);
+	void setSingleErrRate(double val);
+	void setMultiErrRate(double val);
 	void setSingleGateTime(double val);
 	void setMultiGateTime(double val);
-	void setLoseTime(double val){ loseTime = val; }
-	void setDynamicNoise(double val){ dynamicNoise = val; }
-	void setSpamErr(double val){ spamError1to0 = spamError0to1 = val; }
-	void setSpamErr0to1(double val){ spamError0to1 = val; }
-	void setSpamErr1to0(double val){ spamError1to0 = val; }
-	void setAmpDampingRate(double val){ ampDampingRate = val; }
+	void setLoseTime(double val);
+	void setDynamicNoise(double val);
+	void setSpamErr0to1(double val);
+	void setSpamErr1to0(double val);
+	void setSpamErr(double val){ setSpamErr0to1(val); setSpamErr1to0(val); }
+	void setAmpDampingRate(double val);
 
 	unsigned getXSize(){ return xSize; }
 	unsigned getYSize(){ return ySize; }

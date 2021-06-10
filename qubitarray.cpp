@@ -4,10 +4,11 @@
 #include <string>
 #include <iostream>
 
-QubitArray::QubitArray(int a, int b)
+QubitArray::QubitArray(unsigned a, unsigned b)
 {
-	if(a == 0 || b == 0)
-		throw std::invalid_argument("Cannot create qureg with 0 qubits");
+	if(a <= 0 || b <= 0)
+		throw std::invalid_argument(std::string("Invalid Qureg size: ") +
+									std::to_string(a) + " * " + std::to_string(b));
 	env = createQuESTEnv();
 	unsigned long seed = gen();
 	seedQuEST(&seed, 1);
@@ -42,30 +43,27 @@ QubitArray::~QubitArray()
 	destroyQuESTEnv(env);
 }
 
-int QubitArray::getIndex(cords c) const
+unsigned QubitArray::getIndex(cords c) const
 {
-	if(c.x < 0 || c.y < 0)
-		throw std::invalid_argument("Negative qubit index given");
 	if(c.x >= xSize || c.y >= ySize)
 		throw std::out_of_range("Out of qubit register");
 	return c.y * xSize + c.x;
 }
-cords QubitArray::getCords(int index) const
+
+cords QubitArray::getCords(unsigned index) const
 {
-	if(index < 0)
-		throw std::invalid_argument("Negative qubit index given");
 	if(index >= xSize * ySize)
 		throw std::out_of_range("Out of qubit register");
 	return {index / xSize, index % xSize};
 }
 
-double QubitArray::getSquaredAmp(int index)
+double QubitArray::getSquaredAmp(unsigned index)
 {
 	//supports SPAM errors
-	int n = xSize * ySize, spamedIndex = 0;
+	unsigned n = xSize * ySize, spamedIndex = 0;
 	double normRatio = 1.;
 	std::uniform_real_distribution rand(0.0, 1.0);
-	for(int i = 0; i < n; i++)
+	for(unsigned i = 0; i < n; i++)
 	{
 		bool bit = index & (1 << i);
 		double r = bit ? (1. + spamError0to1 - spamError1to0) : (1. - spamError0to1 + spamError1to0);
@@ -78,7 +76,7 @@ double QubitArray::getSquaredAmp(int index)
 	return normRatio * (real * real + imag * imag);
 }
 
-void QubitArray::dropQubit(int index)
+void QubitArray::dropQubit(unsigned index)
 {
 	if(calcProbOfOutcome(qubits, index, 0) < OUTCOME_PROB_EPS)
 		pauliX(qubits, index);
@@ -104,10 +102,14 @@ void QubitArray::reset()
 	multiGateInCurLayer = false;
 	startNewLayer();
 }
-void QubitArray::resize(int newX, int newY)
+
+void QubitArray::resize(unsigned newX, unsigned newY)
 {
 	if(newX == xSize && newY == ySize)
 		return;
+	if(newX <= 0 || newY <= 0)
+		throw std::invalid_argument(std::string("Invalid Qureg size: ") +
+									std::to_string(newX) + " * " + std::to_string(newY));
 	xSize = newX;
 	ySize = newY;
 	destroyQureg(qubits, env);
@@ -174,7 +176,7 @@ void QubitArray::swap(cords first, cords sec)
 int QubitArray::move(cords init, cords dest)
 {
 	//doesnt support atom loss
-	if(dest.x < 0 || dest.y < 0 || dest.x > xSize || dest.y > ySize || init.x < 0 || init.y < 0 || init.x > xSize || init.y > ySize)
+	if(dest.x > xSize || dest.y > ySize || init.x > xSize || init.y > ySize)
 		throw std::out_of_range("Given index is out of qubit register ranges");
 	cords cur = init;
 	int xStep = 1, yStep = 1;
@@ -194,12 +196,12 @@ int QubitArray::move(cords init, cords dest)
 		swap(cur, {cur.x + xStep, cur.y});
 		cur.x += xStep;
 	}
-	return abs(init.x - dest.x) + abs(init.y - dest.y);
+	return abs(static_cast<int>(init.x - dest.x)) + abs(static_cast<int>(init.y - dest.y));
 }
 
-void QubitArray::applySingleGate(cords target, std::function<void(Qureg, int)> gate)
+void QubitArray::applySingleGate(cords target, std::function<void(Qureg, unsigned)> gate)
 {
-	int index = getIndex(target);
+	unsigned index = getIndex(target);
 
 	if(usedInCurLayer[index])
 		startNewLayer();
@@ -219,7 +221,7 @@ void QubitArray::applyRotation(cords target, Vector v, double angle)
 {
 	//provides dynamic noise
 	applySingleGate(target,
-		[angle, v](Qureg reg, int index)
+		[angle, v](Qureg reg, unsigned index)
 		{
 			rotateAroundAxis(reg, index, angle, v);
 		});
@@ -275,14 +277,14 @@ double QubitArray::calcProb(cords target)
 	return (result * (1 - spamError1to0)) + ((1 - result) * spamError0to1);
 }
 
-void QubitArray::applyNoiseGate(int index, double coupling, double time)
+void QubitArray::applyNoiseGate(unsigned index, double coupling, double time)
 {
 	std::normal_distribution<double> rand(0, 1 * sqrt(time));	// \sigma = 1
 	double w = rand(gen);
 	rotateZ(qubits, index, 2 * sqrt(coupling) * w);
 }
 
-void QubitArray::applyNoise(int index)
+void QubitArray::applyNoise(unsigned index)
 {
 	if(isLost[index])
 		return;
@@ -301,7 +303,7 @@ void QubitArray::applyNoise(int index)
 
 void QubitArray::applyNoise()
 {
-	for(int i = 0; i < xSize * ySize; i++)
+	for(unsigned i = 0; i < xSize * ySize; i++)
 		applyNoise(i);
 }
 
@@ -322,7 +324,7 @@ void QubitArray::applyMultiGateErr(cords target)
 	lastNoiseTime[getIndex(target)] = totalTime + multiGateTime;
 }
 
-void QubitArray::applyDamping(int index, double time)
+void QubitArray::applyDamping(unsigned index, double time)
 {
 	std::normal_distribution<double> rand(0, 1 - exp(- ampDampingRate * time));
 	double phi = rand(gen);

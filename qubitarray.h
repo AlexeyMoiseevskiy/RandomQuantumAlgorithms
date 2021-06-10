@@ -11,15 +11,14 @@
 
 struct cords
 {
-	int x;
-	int y;
+	unsigned x;
+	unsigned y;
 };
 
 class QubitArray
 {
 public:
-	QubitArray(int a, int b);
-	QubitArray():QubitArray(1, 1){}
+	QubitArray(unsigned a = 1, unsigned b = 1);
 	~QubitArray();
 
 	void setEnvCoupling(double val);
@@ -36,44 +35,44 @@ public:
 	void setSpamErr1to0(double val){ spamError1to0 = val; }
 	void setAmpDampingRate(double val){ ampDampingRate = val; }
 
-	int getXSize(){ return xSize; }
-	int getYSize(){ return ySize; }
+	unsigned getXSize(){ return xSize; }
+	unsigned getYSize(){ return ySize; }
 
 	void reset();
-	void resize(int newX, int newY);
+	void resize(unsigned newX, unsigned newY);
 	void generateBell(cords first, cords sec);
 	void pureX(cords target){ pauliX(qubits, getIndex(target)); }
 	void pureH(cords target){ hadamard(qubits, getIndex(target)); }
 	void pureCZ(cords control, cords target){ controlledPhaseFlip(qubits, getIndex(control), getIndex(target)); }
-	void dropQubit(int index);
+	void dropQubit(unsigned index);
 	void cz(cords control, cords target);
 	void swap(cords first, cords sec);
 	int move(cords init, cords dest);
 
-	void applySingleGate(cords target, std::function<void(Qureg, int)> gate);
+	void applySingleGate(cords target, std::function<void(Qureg, unsigned)> gate);
 	void applyRotation(cords target, Vector v, double angle);
 	void hadamardGate(cords target){ applySingleGate(target, hadamard); }
-	void sqrtX(cords target){ applySingleGate(target, [](Qureg reg, int index){rotateX(reg, index, M_PI_2);}); }
-	void sqrtY(cords target){ applySingleGate(target, [](Qureg reg, int index){rotateY(reg, index, M_PI_2);}); }
+	void sqrtX(cords target){ applySingleGate(target, [](Qureg reg, unsigned index){rotateX(reg, index, M_PI_2);}); }
+	void sqrtY(cords target){ applySingleGate(target, [](Qureg reg, unsigned index){rotateY(reg, index, M_PI_2);}); }
 	void TGate(cords target){ applySingleGate(target, tGate); }
 	void XGate(cords target){ applySingleGate(target, pauliX); }
 
 	double calcBellFidelity(cords first, cords sec);
 	double calcBellFidelityDirect(cords first, cords sec);
 	int meas(cords target);
-	double getSquaredAmp(int index);
+	double getSquaredAmp(unsigned index);
 	friend double fidelity(const QubitArray &arr1, const QubitArray &arr2){ return calcFidelity(arr1.qubits, arr2.qubits); }
 	double calcProb(cords target);
 
-	int getIndex(cords c) const;
-	cords getCords(int index) const;
+	unsigned getIndex(cords c) const;
+	cords getCords(unsigned index) const;
 
 private:
 	QuESTEnv env;
 	Qureg qubits;
 
-	int xSize;
-	int ySize;
+	unsigned xSize;
+	unsigned ySize;
 	double envCoupling;
 	double singleGateCoupling;
 	double multiGateCoupling;
@@ -91,14 +90,14 @@ private:
 	std::random_device rd{};
 	std::mt19937 gen{rd()};
 
-	void applyNoiseGate(int index, double coupling, double time);
-	void applyNoise(int index);
+	void applyNoiseGate(unsigned index, double coupling, double time);
+	void applyNoise(unsigned index);
 	void applyNoise(cords target){ applyNoise(getIndex(target)); }
 	void applyNoise();
 	void applySingleGateErr(cords target);
 	void applyMultiGateErr(cords target);
 	void applyMultiGateErr(cords first, cords sec){ applyMultiGateErr(first); applyMultiGateErr(sec); }
-	void applyDamping(int index, double time);
+	void applyDamping(unsigned index, double time);
 
 	double totalTime;
 	bool singleGateInCurLayer;

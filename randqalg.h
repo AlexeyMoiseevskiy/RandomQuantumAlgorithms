@@ -40,7 +40,7 @@ public:
 	Gate genSingleGate(cords target);
 	void generate();
 	void evaluate(QubitArray &qubits);
-	void evaluateLayer(QubitArray &qubits, int layerIndex);
+	void evaluateLayer(QubitArray &qubits, unsigned layerIndex);
 
 private:
 	int cols, lines;
@@ -57,8 +57,8 @@ private:
 	static constexpr int gapBeetwCZ = 2;
 	static constexpr int lineSamplesInMask = 2;
 
-	void fillLine(int lineNum, int begin);
-	void fillCol(int colNum, int begin);
+	void fillLine(unsigned lineNum, unsigned begin);
+	void fillCol(unsigned colNum, unsigned begin);
 	std::function<void(int,int)> lineFiller = [this](int lineNum, int begin) { this->fillLine(lineNum, begin); };
 	std::function<void(int,int)> colFiller = [this](int lineNum, int begin) { this->fillCol(lineNum, begin); };
 	void addLayer(const std::array<int, lineSamplesInMask> &beginPoints, int numOfLines, std::function<void(int,int)> fillerFunc);

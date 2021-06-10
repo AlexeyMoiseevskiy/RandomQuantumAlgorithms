@@ -92,12 +92,12 @@ Gate RandQAlg::genSingleGate(cords target)
 	return randGate;
 }
 
-void RandQAlg::fillLine(int lineNum, int begin)
+void RandQAlg::fillLine(unsigned lineNum, unsigned begin)
 {
 	if(begin > cols)
 		return;
 
-	int count;
+	unsigned count;
 	for(count = 0; count < begin; count++)
 		addGate(genSingleGate({count, lineNum}), {count, lineNum});
 
@@ -114,12 +114,12 @@ void RandQAlg::fillLine(int lineNum, int begin)
 		addGate(genSingleGate({count, lineNum}), {count, lineNum});
 }
 
-void RandQAlg::fillCol(int colNum, int begin)
+void RandQAlg::fillCol(unsigned colNum, unsigned begin)
 {
 	if(begin > lines)
 		return;
 
-	int count;
+	unsigned count;
 	for(count = 0; count < begin; count++)
 		addGate(genSingleGate({colNum, count}), {colNum, count});
 
@@ -167,8 +167,8 @@ void RandQAlg::init(QubitArray &qubits)
 {
 	qubits.reset();
 	//H layer
-	for(int i = 0; i < cols; i++)
-		for(int j = 0; j < lines; j++)
+	for(unsigned i = 0; i < cols; i++)
+		for(unsigned j = 0; j < lines; j++)
 			qubits.hadamardGate({i, j});
 }
 
@@ -178,12 +178,12 @@ void RandQAlg::evaluate(QubitArray &qubits)
 		throw std::length_error("Algorithm's layer size doesn't match qubit array size");
 
 	init(qubits);
-	for(int j = 0; j < givenDepth; j++)
-		for(int i = 0; i <static_cast<int>(layers[j].size()); i++)
+	for(unsigned j = 0; j < givenDepth; j++)
+		for(unsigned i = 0; i < layers[j].size(); i++)
 			applyGate(qubits, layers[j][i], {i % cols, i / cols});
 }
 
-void RandQAlg::evaluateLayer(QubitArray &qubits, int layerIndex)
+void RandQAlg::evaluateLayer(QubitArray &qubits, unsigned layerIndex)
 {
 	if(qubits.getXSize() != cols || qubits.getYSize() != lines)
 		throw std::length_error("Algorithm's layer size doesn't match qubit array size");
@@ -192,7 +192,7 @@ void RandQAlg::evaluateLayer(QubitArray &qubits, int layerIndex)
 
 	if(layerIndex == 0)
 		init(qubits);
-	for(int i = 0; i <static_cast<int>(layers[layerIndex].size()); i++)
+	for(unsigned i = 0; i < layers[layerIndex].size(); i++)
 		applyGate(qubits, layers[layerIndex][i], {i % cols, i / cols});
 }
 

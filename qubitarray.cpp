@@ -46,7 +46,8 @@ QubitArray::~QubitArray()
 unsigned QubitArray::getIndex(cords c) const
 {
 	if(c.x >= xSize || c.y >= ySize)
-		throw std::out_of_range("Out of qubit register");
+		throw std::out_of_range("Out of qubit register (x = " + std::to_string(c.x) +
+								", y = " + std::to_string(c.y) + ")");
 	return c.y * xSize + c.x;
 }
 
@@ -314,7 +315,6 @@ void QubitArray::applySingleGateErr(cords target)
 	lastNoiseTime[getIndex(target)] = totalTime + singleGateTime;
 }
 
-
 void QubitArray::applyMultiGateErr(cords target)
 {
 	if(isLost[getIndex(target)])
@@ -346,21 +346,24 @@ void QubitArray::applyDamping(unsigned index, double time)
 void QubitArray::setSingleErrRate(double val)
 {
 	if(val < 0 || val >= 0.5)
-		throw std::invalid_argument("Single-qubit gate error rate must be in range (0, 0.5), " + std::to_string(val) + "obtained");
+		throw std::invalid_argument("Single-qubit gate error rate must be in range [0, 0.5), " +
+									std::to_string(val) + " obtained");
 	singleErrRate = val / 2;
 }
 
 void QubitArray::setMultiErrRate(double val)
 {
 	if(val < 0 || val >= 0.5)
-		throw std::invalid_argument("Multi-qubit gate error rate must be in range (0, 0.5), " + std::to_string(val) + "obtained");
+		throw std::invalid_argument("Multi-qubit gate error rate must be in range [0, 0.5), " +
+									std::to_string(val) + " obtained");
 	multiErrRate = val / 2;
 }
 
 void QubitArray::setSingleGateTime(double val)
 {
 	if(val < 0)
-		throw std::invalid_argument("Single-qubit gate time must be positiva" + std::to_string(val) + " obtained");
+		throw std::invalid_argument("Single-qubit gate time must be positive, " +
+									std::to_string(val) + " obtained");
 	if (singleGateTime == val)
 		return;
 	singleGateTime = val;
@@ -372,7 +375,8 @@ void QubitArray::setMultiGateTime(double val)
 {
 
 	if(val < 0)
-		throw std::invalid_argument("Multi-qubit gate time must be positiva" + std::to_string(val) + " obtained");
+		throw std::invalid_argument("Multi-qubit gate time must be positive, " +
+									std::to_string(val) + " obtained");
 	if(multiGateTime == val)
 		return;
 	multiGateTime = val;
@@ -383,28 +387,32 @@ void QubitArray::setMultiGateTime(double val)
 void QubitArray::setSingleGateCoupling(double val)
 {
 	if(val < 0)
-		throw std::invalid_argument("Single-qubit gate coupling constant must be positiva" + std::to_string(val) + " obtained");
+		throw std::invalid_argument("Single-qubit gate coupling constant must be positive, " +
+									std::to_string(val) + " obtained");
 	singleGateCoupling = val;
 }
 
 void QubitArray::setMultiGateCoupling(double val)
 {
 	if(val < 0)
-		throw std::invalid_argument("Multi-qubit gate coupling constant must be positiva" + std::to_string(val) + " obtained");
+		throw std::invalid_argument("Multi-qubit gate coupling constant must be positive, " +
+									std::to_string(val) + " obtained");
 	multiGateCoupling = val;
 }
 
 void QubitArray::setEnvCoupling(double val)
 {
 	if(val >= 0.5)
-		throw std::invalid_argument("Enviroment coupling must be in range (0, 0.5), " + std::to_string(val) + " obtained");
+		throw std::invalid_argument("Enviroment coupling must be in range [0, 0.5), " +
+									std::to_string(val) + " obtained");
 	envCoupling = val;
 }
 
 void QubitArray::setLoseTime(double val)
 {
 	if(val < 0)
-		throw std::invalid_argument("Qubit life time must be positive, " + std::to_string(val) + " obtained");
+		throw std::invalid_argument("Qubit life time must be positive, " +
+									std::to_string(val) + " obtained");
 	loseTime = val;
 }
 
@@ -419,20 +427,23 @@ void QubitArray::setDynamicNoise(double val)
 void QubitArray::setSpamErr0to1(double val)
 {
 	if(val < 0 || val > 1)
-		throw std::invalid_argument("SPAM error probability must be in range (0, 1), " + std::to_string(val) + " obtained");
+		throw std::invalid_argument("SPAM error probability must be in range [0, 1], " +
+									std::to_string(val) + " obtained");
 	spamError0to1 = val;
 }
 
 void QubitArray::setSpamErr1to0(double val)
 {
 	if(val < 0 || val > 1)
-		throw std::invalid_argument("SPAM error probability must be in range (0, 1), " + std::to_string(val) + " obtained");
+		throw std::invalid_argument("SPAM error probability must be in range [0, 1], " +
+									std::to_string(val) + " obtained");
 	spamError1to0 = val;
 }
 
 void QubitArray::setAmpDampingRate(double val)
 {
 	if(val < 0 || val > 1)
-		throw std::invalid_argument("Amplitude damping rate must be in range (0, 1), " + std::to_string(val) + " obtained");
+		throw std::invalid_argument("Amplitude damping rate must be in range [0, 1], " +
+									std::to_string(val) + " obtained");
 	ampDampingRate = val;
 }

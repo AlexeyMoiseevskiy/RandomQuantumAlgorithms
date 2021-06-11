@@ -53,8 +53,8 @@ unsigned QubitArray::getIndex(cords c) const
 cords QubitArray::getCords(unsigned index) const
 {
 	if(index >= xSize * ySize)
-		throw std::out_of_range("Out of qubit register");
-	return {index / xSize, index % xSize};
+		throw std::out_of_range("Out of qubit register (index = " + std::to_string(index) + ")");
+	return {index % xSize, index / xSize};
 }
 
 double QubitArray::getSquaredAmp(unsigned index)
@@ -410,8 +410,9 @@ void QubitArray::setLoseTime(double val)
 
 void QubitArray::setDynamicNoise(double val)
 {
-	if(val < 0 || val > M_PI)
-		throw std::invalid_argument("Unitary rotation error must be in range (0, PI), " + std::to_string(val) + "obtained");
+	if(val < 0)
+		throw std::invalid_argument("Unitary rotation error must be positive, " +
+									std::to_string(val) + " obtained");
 	dynamicNoise = val;
 }
 

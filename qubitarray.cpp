@@ -362,7 +362,7 @@ void QubitArray::setMultiErrRate(double val)
 void QubitArray::setSingleGateTime(double val)
 {
 	if(val < 0)
-		throw std::invalid_argument("Single-qubit gate time must be positive, " +
+		throw std::invalid_argument("Single-qubit gate time must be non-negative, " +
 									std::to_string(val) + " obtained");
 	if (singleGateTime == val)
 		return;
@@ -375,7 +375,7 @@ void QubitArray::setMultiGateTime(double val)
 {
 
 	if(val < 0)
-		throw std::invalid_argument("Multi-qubit gate time must be positive, " +
+		throw std::invalid_argument("Multi-qubit gate time must be non-negative, " +
 									std::to_string(val) + " obtained");
 	if(multiGateTime == val)
 		return;
@@ -386,7 +386,7 @@ void QubitArray::setMultiGateTime(double val)
 
 void QubitArray::setSingleGateCoupling(double val)
 {
-	if(val < 0)
+	if(val <= 0)
 		throw std::invalid_argument("Single-qubit gate coupling constant must be positive, " +
 									std::to_string(val) + " obtained");
 	singleGateCoupling = val;
@@ -394,7 +394,7 @@ void QubitArray::setSingleGateCoupling(double val)
 
 void QubitArray::setMultiGateCoupling(double val)
 {
-	if(val < 0)
+	if(val <= 0)
 		throw std::invalid_argument("Multi-qubit gate coupling constant must be positive, " +
 									std::to_string(val) + " obtained");
 	multiGateCoupling = val;
@@ -402,8 +402,8 @@ void QubitArray::setMultiGateCoupling(double val)
 
 void QubitArray::setEnvCoupling(double val)
 {
-	if(val >= 0.5)
-		throw std::invalid_argument("Enviroment coupling must be in range [0, 0.5), " +
+	if(val < 0)
+		throw std::invalid_argument("Environment coupling must be non-negative, " +
 									std::to_string(val) + " obtained");
 	envCoupling = val;
 }
@@ -411,7 +411,7 @@ void QubitArray::setEnvCoupling(double val)
 void QubitArray::setLoseTime(double val)
 {
 	if(val < 0)
-		throw std::invalid_argument("Qubit life time must be positive, " +
+		throw std::invalid_argument("Qubit life time must be non-negative, " +
 									std::to_string(val) + " obtained");
 	loseTime = val;
 }
@@ -419,7 +419,7 @@ void QubitArray::setLoseTime(double val)
 void QubitArray::setDynamicNoise(double val)
 {
 	if(val < 0)
-		throw std::invalid_argument("Unitary rotation error must be positive, " +
+		throw std::invalid_argument("Unitary rotation error must be non-negative, " +
 									std::to_string(val) + " obtained");
 	dynamicNoise = val;
 }
